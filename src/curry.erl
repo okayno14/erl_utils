@@ -1,12 +1,18 @@
 -module(curry).
 
 -export([
-    make_curry/2,
+    make_curry/1,
     run_curry/2
 ]).
 
 %%--------------------------------------------------------------------
-%% @doc Прогоняет аргументы по цепочке карированных функций
+%% @doc
+%% <pre>
+%% Прогоняет аргументы по цепочке карированной функции
+%% pre:
+%%   length(Args) =&lt; arity(F), где F - искомая каррированная функция
+%% </pre>
+%% @end
 -spec run_curry(FunCurried :: function(), Args :: list(term())) ->
     Result :: term().
 %%--------------------------------------------------------------------
@@ -17,15 +23,16 @@ run_curry(FunCurried, Args) ->
 %%--------------------------------------------------------------------
 %% @doc
 %% <pre>
-%% Позволяет выполнить каррирование функции, определённой в модуле.
-%% Example:
-%% F :: fun m:f/2 | fun f/2.
+%% Позволяет выполнить каррирование функции, определённой в модуле:
+%% F :: fun m:f/2 | fun f/2
+%% Также работает и на прочих анонимных функциях.
 %% </pre>
 %% @end
--spec make_curry(F :: function(), Arity :: pos_integer()) ->
+-spec make_curry(F :: function()) ->
     fun() | Result :: term().
 %%--------------------------------------------------------------------
-make_curry(F, Arity) when is_function(F) ->
+make_curry(F) when is_function(F) ->
+    Arity = proplists:get_value(arity, erlang:fun_info(F)),
     fun(X) -> make_curry_(F, Arity, X, []) end.
 
 make_curry_(F, _Arity = 1, X, Args) ->

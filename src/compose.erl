@@ -1,6 +1,7 @@
 -module(compose).
 
 -export([
+    run_compose/2,
     run_conveyor/2,
     catch_wrap/1
 ]).
@@ -8,6 +9,15 @@
 -export_type([result/0]).
 
 -type result() :: {_Result, {error, _Reason}} | {error, _Reason} | _Result.
+
+%%--------------------------------------------------------------------
+%% @doc То же, что и run_conveyor/2, но слева-направо
+-spec run_compose(AccFun :: fun(() -> result()), FunList :: [fun(() -> result())]) ->
+    result().
+%%--------------------------------------------------------------------
+run_compose(AccFun, FunList) ->
+    run_conveyor(AccFun, lists:reverse(FunList)).
+%%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc

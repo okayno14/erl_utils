@@ -2,7 +2,7 @@
 
 -export([
     run_compose/2,
-    run_conveyor/2,
+    run_pipe/2,
     catch_wrap/1
 ]).
 
@@ -11,12 +11,12 @@
 -type result() :: {_Result, {error, _Reason}} | {error, _Reason} | _Result.
 
 %%--------------------------------------------------------------------
-%% @doc То же, что и run_conveyor/2, но слева-направо
+%% @doc То же, что и run_pipe/2, но слева-направо
 -spec run_compose(AccFun :: fun(() -> result()), FunList :: [fun(() -> result())]) ->
     result().
 %%--------------------------------------------------------------------
 run_compose(AccFun, FunList) ->
-    run_conveyor(AccFun, lists:reverse(FunList)).
+    run_pipe(AccFun, lists:reverse(FunList)).
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
@@ -29,16 +29,16 @@ run_compose(AccFun, FunList) ->
 %%   Функции из FunList не должны генерировать исключения
 %% </pre>
 %% @end
--spec run_conveyor(AccFun :: fun(() -> result()), FunList :: [fun(() -> result())]) ->
+-spec run_pipe(AccFun :: fun(() -> result()), FunList :: [fun(() -> result())]) ->
     result().
 %%--------------------------------------------------------------------
-run_conveyor(AccFun, FunList) ->
-    run_conveyor_(undefined, [fun(_) -> AccFun() end | FunList]).
+run_pipe(AccFun, FunList) ->
+    run_pipe_(undefined, [fun(_) -> AccFun() end | FunList]).
 
-run_conveyor_(Acc, []) ->
+run_pipe_(Acc, []) ->
     Acc;
 
-run_conveyor_(Acc, [Fun | FunList]) ->
+run_pipe_(Acc, [Fun | FunList]) ->
     case Fun(Acc) of
         ResultErr = {_Result, {error, _Reason}} ->
             ResultErr;
@@ -47,7 +47,7 @@ run_conveyor_(Acc, [Fun | FunList]) ->
             ResultErr;
 
         Acc2 ->
-            run_conveyor_(Acc2, FunList)
+            run_pipe_(Acc2, FunList)
     end.
 %%--------------------------------------------------------------------
 

@@ -1,6 +1,9 @@
 -module(compose).
 
 -export([
+    compose/1,
+    pipe/1,
+
     run_compose/2,
     run_pipe/2,
     catch_wrap/1
@@ -11,28 +14,46 @@
 -type result() :: {_Result, {error, _Reason}} | {error, _Reason} | _Result.
 
 %%--------------------------------------------------------------------
+%% @doc Возвращает анонимную функцию-композицию
+-spec compose(FunList :: [fun(() -> result())]) ->
+    fun((AccFun :: fun(() -> result())) -> result()).
+%%--------------------------------------------------------------------
+compose(FunList) ->
+    (curry:make_curry(fun compose:run_compose/2))(FunList).
+%%--------------------------------------------------------------------
+
+%%--------------------------------------------------------------------
+%% @doc Возвращает анонимную функцию-конвейер
+-spec pipe(FunList :: [fun(() -> result())]) ->
+    fun((AccFun :: fun(() -> result())) -> result()).
+%%--------------------------------------------------------------------
+pipe(FunList) ->
+    (curry:make_curry(fun compose:run_pipe/2))(FunList).
+%%--------------------------------------------------------------------
+
+%%--------------------------------------------------------------------
 %% @doc То же, что и run_pipe/2, но слева-направо
--spec run_compose(AccFun :: fun(() -> result()), FunList :: [fun(() -> result())]) ->
+-spec run_compose(FunList :: [fun(() -> result())], AccFun :: fun(() -> result())) ->
     result().
 %%--------------------------------------------------------------------
-run_compose(AccFun, FunList) ->
-    run_pipe(AccFun, lists:reverse(FunList)).
+run_compose(FunList, AccFun) ->
+    run_pipe(lists:reverse(FunList), AccFun).
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc
 %% <pre>
 %% Пропускает значение по конвейеру функций.
-%% AccFun - функция, возвращающая начальное значение
 %% FunList - список анонимных функций, по которым будет пропущен аккумулятор
+%% AccFun - функция, возвращающая начальное значение
 %% pre:
 %%   Функции из FunList не должны генерировать исключения
 %% </pre>
 %% @end
--spec run_pipe(AccFun :: fun(() -> result()), FunList :: [fun(() -> result())]) ->
+-spec run_pipe(FunList :: [fun(() -> result())], AccFun :: fun(() -> result())) ->
     result().
 %%--------------------------------------------------------------------
-run_pipe(AccFun, FunList) ->
+run_pipe(FunList, AccFun) ->
     run_pipe_(undefined, [fun(_) -> AccFun() end | FunList]).
 
 run_pipe_(Acc, []) ->

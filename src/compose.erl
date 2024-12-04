@@ -9,9 +9,14 @@
     catch_wrap/1
 ]).
 
--export_type([result/0]).
+-export_type([
+    result/0,
+    acc0/0
+]).
 
 -type result() :: {_Result, {error, _Reason}} | {error, _Reason} | _Result.
+%% Начальное значение аккумулятора для pipe/compose
+-type acc0() :: fun(() -> result()) | term().
 
 %%--------------------------------------------------------------------
 %% @doc Возвращает анонимную функцию-композицию
@@ -24,8 +29,8 @@ compose(FunList) ->
 
 %%--------------------------------------------------------------------
 %% @doc Возвращает анонимную функцию-конвейер
--spec pipe(FunList :: [fun(() -> result())]) ->
-    fun((AccFun :: fun(() -> result())) -> result()).
+-spec pipe(FunList :: [fun((_Acc) -> result())]) ->
+    fun((AccFun :: acc0()) -> result()).
 %%--------------------------------------------------------------------
 pipe(FunList) ->
     (curry:make_curry(fun compose:run_pipe/2))(FunList).
@@ -33,7 +38,7 @@ pipe(FunList) ->
 
 %%--------------------------------------------------------------------
 %% @doc То же, что и run_pipe/2, но слева-направо
--spec run_compose(FunList :: [fun(() -> result())], AccFun :: fun(() -> result())) ->
+-spec run_compose(FunList :: [fun(() -> result())], AccFun :: acc0()) ->
     result().
 %%--------------------------------------------------------------------
 run_compose(FunList, AccFun) ->
@@ -45,16 +50,19 @@ run_compose(FunList, AccFun) ->
 %% <pre>
 %% Пропускает значение по конвейеру функций.
 %% FunList - список анонимных функций, по которым будет пропущен аккумулятор
-%% AccFun - функция, возвращающая начальное значение
+%% AccFun - функция, возвращающая начальное значение; либо уже заранее определённый аккумулятор
 %% pre:
 %%   Функции из FunList не должны генерировать исключения
 %% </pre>
 %% @end
--spec run_pipe(FunList :: [fun(() -> result())], AccFun :: fun(() -> result())) ->
+-spec run_pipe(FunList :: [fun((_Acc) -> result())], AccFun :: acc0()) ->
     result().
 %%--------------------------------------------------------------------
-run_pipe(FunList, AccFun) ->
-    run_pipe_(undefined, [fun(_) -> AccFun() end | FunList]).
+run_pipe(FunList, AccFun) when is_function(AccFun) ->
+    run_pipe_(undefined, [fun(_) -> AccFun() end | FunList]);
+
+run_pipe(FunList, Acc) ->
+    run_pipe_(Acc, FunList).
 
 run_pipe_(Acc, []) ->
     Acc;

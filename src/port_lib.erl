@@ -1,12 +1,46 @@
 -module(port_lib).
 
--export([run_interactive_cmd/1]).
+-export([
+    run_cmd/1,
+    run_interactive_cmd/1
+]).
+
+-define(CODE_SUCCESS, 0).
+
+%%--------------------------------------------------------------------
+%% @doc
+-spec run_cmd(CMD :: nonempty_string()) ->
+    {Status :: ok | error, Data :: nil() | [nonempty_string()]}.
+%%--------------------------------------------------------------------
+run_cmd(CMD) ->
+    ReadDataFun =
+    fun ReadData(P, Acc) ->
+        receive
+            {P, {data, Str}} ->
+                ReadData(P, [Str | Acc])
+        after
+            0 ->
+                lists:reverse(Acc)
+        end
+    end,
+
+    P = erlang:open_port({spawn, CMD}, [exit_status]),
+    receive
+        {P, {exit_status, ?CODE_SUCCESS}} ->
+            Status = ok;
+
+        {P, {exit_status, _S}} ->
+            Status = error
+    end,
+    Data = ReadDataFun(P, []),
+    {Status, Data}.
+%%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc
 %% <pre>
 %% Запускает порт для CMD, чтение - текущий поток, запись - spawn_link.
-%% НЕ РАБОТАЕТ С терминальными приложениями, т.к. они аттачатся к терминалу,
+%% НЕ РАБОТАЕТ С НЕКОТОРЫМИ терминальными приложениями, т.к. они аттачатся к терминалу,
 %% а когда erl-машина аттачится к std-потокам, то приложения не могут адекватно выполнять обмен
 %% </pre>
 %% @end

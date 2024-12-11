@@ -37,23 +37,24 @@ curry:run_curry(F3, ["f~n", []]).
 Примеры:
 
 ```erlang
-base_test() ->
-    Maybe = maybe(1),
-    IncFun = fun(X) -> X + 1 end,
-    Maybe2 = bind(bind(bind(Maybe, IncFun), IncFun), IncFun),
-    ?assertEqual(acc(Maybe2), 4).
 
-pipe_test() ->
-    Maybe = maybe(1),
-    IncFun = fun(X) -> X + 1 end,
-    Maybe2 = pipe(Maybe, [IncFun, IncFun, IncFun]),
-    ?assertEqual(acc(Maybe2), 4).
+    Maybe = maybe:maybe(1),
+    IncFun = fun(X) -> maybe(X + 1) end.
+    Maybe2 = maybe:pipe(Maybe, [IncFun, IncFun, IncFun]),
+    ?assertEqual(maybe:extract(Maybe2), 4).
 
-error_test() ->
-    Maybe = maybe(1),
-    IncFun = fun(X) -> X + 1 end,
-    Error = {error, my_reason},
-    Maybe2 = pipe(Maybe, [IncFun, IncFun, IncFun, fun(_) -> Error end, IncFun, IncFun]),
-    ?assertEqual(acc(Maybe2), Error).
+    Maybe = maybe:maybe(1),
+    IncFun = fun(X) -> maybe(X + 1) end.
+    BindFun = fun maybe:bind/2,
+    Maybe2 = BindFun(BindFun(BindFun(Maybe, IncFun), fun(_) -> maybe(undefined) end), IncFun),
+    ?assertEqual(maybe:extract(Maybe2), undefined).
+
+    Maybe = maybe:maybe(1),
+    IncFun = inc_fun(),
+    Maybe2 =
+    maybe:pipe(Maybe, [
+        fun(X) -> maybe:maybe({dive, maybe:maybe(X), [IncFun || _ <- lists:seq(1, 10)]}) end
+    ]),
+    ?assertEqual(maybe:extract(Maybe2), 11).
 ```
 

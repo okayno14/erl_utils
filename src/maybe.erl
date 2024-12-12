@@ -25,7 +25,7 @@
 ]).
 
 -record(maybe, {
-    data :: undefined | {dive, Maybe :: maybe(), L :: [ffun()]} | term()
+    data :: undefined | monad:extract_ret()
 }).
 
 -type maybe() :: monad:monad().

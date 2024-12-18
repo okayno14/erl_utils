@@ -238,9 +238,9 @@ common_pipe_curry_test() ->
     Status =
     compose:run_pipe(
         [
-            (curry:curry(fun validation:bind/2, right))(CheckIdFun),
-            (curry:curry(fun validation:bind/2, right))(CheckNameFun),
-            (curry:curry(fun validation:bind/2, right))(CheckAgeFun)
+            (curry:curry_right(fun validation:bind/2))(CheckIdFun),
+            (curry:curry_right(fun validation:bind/2))(CheckNameFun),
+            (curry:curry_right(fun validation:bind/2))(CheckAgeFun)
         ],
         fun() -> validation:validation(UserInit) end
     ),

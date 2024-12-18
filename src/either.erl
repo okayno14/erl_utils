@@ -117,7 +117,7 @@ base_test() ->
     Either = right(DB),
 
     %% Happy path
-    Either2 = bind(bind(Either, (curry:curry(PersonFun, right))(2)), NameFun),
+    Either2 = bind(bind(Either, (curry:curry_right(PersonFun))(2)), NameFun),
     ?assertEqual(extract(Either2), "b").
 
 error_test() ->
@@ -129,7 +129,7 @@ error_test() ->
     Either = right(DB),
 
     %% Fail
-    Either2 = bind(bind(Either, (curry:curry(PersonFun, right))(3)), NameFun),
+    Either2 = bind(bind(Either, (curry:curry_right(PersonFun))(3)), NameFun),
     ?assertEqual(extract(Either2), {error, not_found}).
 
 dive_test() ->

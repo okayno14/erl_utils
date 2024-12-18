@@ -1,8 +1,8 @@
 -module(curry).
 
 -export([
-    make_curry/1,
-    make_curry/2,
+    curry/1,
+    curry/2,
     run_curry/2
 ]).
 
@@ -23,11 +23,11 @@ run_curry(FunCurried, Args) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec make_curry(F :: function()) ->
+-spec curry(F :: function()) ->
     fun() | Result :: term().
 %%--------------------------------------------------------------------
-make_curry(F) ->
-    make_curry(F, left).
+curry(F) ->
+    curry(F, left).
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
@@ -38,23 +38,23 @@ make_curry(F) ->
 %% Также работает и на прочих анонимных функциях.
 %% </pre>
 %% @end
--spec make_curry(F :: function(), Dir :: left | right) ->
+-spec curry(F :: function(), Dir :: left | right) ->
     fun() | Result :: term().
 %%--------------------------------------------------------------------
-make_curry(F, Dir) when is_function(F) ->
+curry(F, Dir) when is_function(F) ->
     Arity = proplists:get_value(arity, erlang:fun_info(F)),
-    fun(X) -> make_curry_(F, Arity, X, Dir, []) end.
+    fun(X) -> curry_(F, Arity, X, Dir, []) end.
 
-make_curry_(F, _Arity = 1, X, left, Args) ->
+curry_(F, _Arity = 1, X, left, Args) ->
     Args2 = lists:reverse([X | Args]),
     erlang:apply(F, Args2);
 
-make_curry_(F, _Arity = 1, X, _right, Args) ->
+curry_(F, _Arity = 1, X, _right, Args) ->
     erlang:apply(F, [X | Args]);
 
-make_curry_(F, Arity, X, Dir, Args) ->
+curry_(F, Arity, X, Dir, Args) ->
     fun(X1) ->
-        make_curry_(F, Arity - 1, X1, Dir, [X | Args])
+        curry_(F, Arity - 1, X1, Dir, [X | Args])
     end.
 %%--------------------------------------------------------------------
 

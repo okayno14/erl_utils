@@ -28,7 +28,7 @@
 -type ffun(X) :: ffun(X, X).
 -type ffun(X, Y) :: fun((X) -> monad(extract_ret(Y))).
 
--callback bind(Monad, ffun(X, Y)) -> Monad | monad(extract_ret(Y)) when
+-callback flatmap(Monad, ffun(X, Y)) -> Monad | monad(extract_ret(Y)) when
     Monad :: monad(extract_ret(X)).
 
 %% Нужна для вытаскивывания зачёрнутого значения и оптимизации рекурсии пайпа

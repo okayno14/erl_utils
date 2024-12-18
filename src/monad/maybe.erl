@@ -10,7 +10,7 @@
 
 %% monad
 -export([
-    bind/2,
+    flatmap/2,
     extract/1
 ]).
 
@@ -36,12 +36,12 @@
 
 %%--------------------------------------------------------------------
 %% @doc
--spec bind(Maybe, F :: ffun(X, Y)) ->
+-spec flatmap(Maybe, F :: ffun(X, Y)) ->
     Maybe | maybe(monad:extract_ret(Y))
 when
     Maybe :: maybe(monad:extract_ret(X)).
 %%--------------------------------------------------------------------
-bind(Maybe = #maybe{}, F) ->
+flatmap(Maybe = #maybe{}, F) ->
     case extract(Maybe) of
         undefined ->
             Maybe;
@@ -80,30 +80,30 @@ extract(Maybe = #maybe{}) ->
 base_test() ->
     Maybe = maybe:maybe(1),
     IncFun = inc_fun(),
-    Maybe2 = maybe:bind(maybe:bind(maybe:bind(Maybe, IncFun), IncFun), IncFun),
+    Maybe2 = maybe:flatmap(maybe:flatmap(maybe:flatmap(Maybe, IncFun), IncFun), IncFun),
     ?assertEqual(maybe:extract(Maybe2), 4).
 
 pipe_test() ->
     Maybe = maybe:maybe(1),
     IncFun = inc_fun(),
     Maybe2 = (compose:pipe([
-        (curry:curry_right(fun maybe:bind/2))(IncFun),
-        (curry:curry_right(fun maybe:bind/2))(IncFun),
-        (curry:curry_right(fun maybe:bind/2))(IncFun)
+        (curry:curry_right(fun maybe:flatmap/2))(IncFun),
+        (curry:curry_right(fun maybe:flatmap/2))(IncFun),
+        (curry:curry_right(fun maybe:flatmap/2))(IncFun)
     ]))(Maybe),
     ?assertEqual(maybe:extract(Maybe2), 4).
 
 undefined_test() ->
     Maybe = maybe:maybe(1),
     IncFun = inc_fun(),
-    Maybe2 = maybe:bind(maybe:bind(maybe:bind(Maybe, IncFun), fun(_) -> maybe:maybe(undefined) end), IncFun),
+    Maybe2 = maybe:flatmap(maybe:flatmap(maybe:flatmap(Maybe, IncFun), fun(_) -> maybe:maybe(undefined) end), IncFun),
     ?assertEqual(maybe:extract(Maybe2), undefined).
 
 dive_test() ->
     Maybe = maybe:maybe(1),
     IncFun = inc_fun(),
     Maybe2 = (compose:pipe([
-        fun(_) -> {dive, [(curry:curry_right(fun maybe:bind/2))(IncFun) || _ <- lists:seq(1, 10)]} end
+        fun(_) -> {dive, [(curry:curry_right(fun maybe:flatmap/2))(IncFun) || _ <- lists:seq(1, 10)]} end
     ]))(Maybe),
     ?assertEqual(maybe:extract(Maybe2), 11).
 

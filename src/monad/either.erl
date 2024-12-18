@@ -11,7 +11,7 @@
 
 %% monad
 -export([
-    bind/2,
+    flatmap/2,
     extract/1
 ]).
 
@@ -48,15 +48,15 @@
 
 %%--------------------------------------------------------------------
 %% @doc
--spec bind(Either, F :: ffun(X, Y)) ->
+-spec flatmap(Either, F :: ffun(X, Y)) ->
     Either | either(monad:extract_ret(Y))
 when
     Either :: either(monad:extract_ret(X)).
 %%--------------------------------------------------------------------
-bind(Left = #left{}, _F) ->
+flatmap(Left = #left{}, _F) ->
     Left;
 
-bind(Right = #right{}, F) ->
+flatmap(Right = #right{}, F) ->
     F(extract(Right)).
 %%--------------------------------------------------------------------
 
@@ -107,7 +107,7 @@ base_test() ->
     Either = either:right(DB),
 
     %% Happy path
-    Either2 = either:bind(either:bind(Either, (curry:curry_right(PersonFun))(2)), NameFun),
+    Either2 = either:flatmap(either:flatmap(Either, (curry:curry_right(PersonFun))(2)), NameFun),
     ?assertEqual(either:extract(Either2), "b").
 
 error_test() ->
@@ -119,7 +119,7 @@ error_test() ->
     Either = either:right(DB),
 
     %% Fail
-    Either2 = either:bind(either:bind(Either, (curry:curry_right(PersonFun))(3)), NameFun),
+    Either2 = either:flatmap(either:flatmap(Either, (curry:curry_right(PersonFun))(3)), NameFun),
     ?assertEqual(either:extract(Either2), {error, not_found}).
 
 dive_test() ->
@@ -127,7 +127,7 @@ dive_test() ->
     IncFun = fun(X) -> either:right(X + 1) end,
     Either2 = (compose:pipe([
         fun(_) ->
-            {dive, [(curry:curry_right(fun either:bind/2))(IncFun) || _ <- lists:seq(1, 10)]}
+            {dive, [(curry:curry_right(fun either:flatmap/2))(IncFun) || _ <- lists:seq(1, 10)]}
         end
     ]))(Either),
     ?assertEqual(either:extract(Either2), 11).

@@ -12,7 +12,7 @@
 
 %% monad
 -export([
-    bind/2,
+    flatmap/2,
     extract/1
 ]).
 
@@ -54,12 +54,12 @@
 %%--------------------------------------------------------------------
 %% @doc Скопировать ErrorStack, перетащить в новый объект,
 %%
--spec bind(Validation, F :: ffun(X, Y)) ->
+-spec flatmap(Validation, F :: ffun(X, Y)) ->
     Validation | validation(monad:extract_ret(Y))
 when
     Validation :: validation(monad:extract_ret(X)).
 %%--------------------------------------------------------------------
-bind(Validation, F) ->
+flatmap(Validation, F) ->
     ErrorStack = error_stack(Validation),
     Data = extract(Validation),
 
@@ -163,9 +163,9 @@ base_test() ->
     CheckNameFun = fun check_name/1,
     CheckAgeFun = fun check_age/1,
 
-    Status = validation:bind(
-        validation:bind(
-            validation:bind(
+    Status = validation:flatmap(
+        validation:flatmap(
+            validation:flatmap(
                 validation:validation(UserInit),
                 CheckIdFun),
             CheckNameFun),
@@ -181,9 +181,9 @@ error_test() ->
     CheckNameFun = fun check_name/1,
     CheckAgeFun = fun check_age/1,
 
-    Status = validation:bind(
-        validation:bind(
-            validation:bind(
+    Status = validation:flatmap(
+        validation:flatmap(
+            validation:flatmap(
                 validation:validation(UserInit), CheckIdFun
             ), CheckNameFun
         ), CheckAgeFun
@@ -202,9 +202,9 @@ pipe_test() ->
     Status =
     compose:run_pipe(
         [
-            fun(Validation) -> validation:bind(Validation, CheckIdFun) end,
-            fun(Validation) -> validation:bind(Validation, CheckNameFun) end,
-            fun(Validation) -> validation:bind(Validation, CheckAgeFun) end
+            fun(Validation) -> validation:flatmap(Validation, CheckIdFun) end,
+            fun(Validation) -> validation:flatmap(Validation, CheckNameFun) end,
+            fun(Validation) -> validation:flatmap(Validation, CheckAgeFun) end
         ],
         fun() -> validation:validation(UserInit) end
     ),
@@ -222,9 +222,9 @@ pipe_curry_test() ->
     Status =
     compose:run_pipe(
         [
-            (curry:curry_right(fun validation:bind/2))(CheckIdFun),
-            (curry:curry_right(fun validation:bind/2))(CheckNameFun),
-            (curry:curry_right(fun validation:bind/2))(CheckAgeFun)
+            (curry:curry_right(fun validation:flatmap/2))(CheckIdFun),
+            (curry:curry_right(fun validation:flatmap/2))(CheckNameFun),
+            (curry:curry_right(fun validation:flatmap/2))(CheckAgeFun)
         ],
         fun() -> validation:validation(UserInit) end
     ),

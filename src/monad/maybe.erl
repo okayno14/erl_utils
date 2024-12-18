@@ -5,7 +5,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([
-    pipe/2,
     maybe/1
 ]).
 
@@ -34,15 +33,6 @@
 -type ffun() :: ffun(term(), term()).
 -type ffun(X) :: ffun(X, X).
 -type ffun(X, Y) :: monad:ffun(X, undefined) | monad:ffun(X, Y).
-
-%%--------------------------------------------------------------------
-%% @doc
--spec pipe(Maybe :: maybe(), ListFun :: [ffun()]) ->
-    maybe().
-%%--------------------------------------------------------------------
-pipe(Maybe, ListFun) ->
-    monad:pipe(?MODULE, Maybe, ListFun).
-%%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -88,32 +78,35 @@ extract(Maybe = #maybe{}) ->
 %%%===================================================================
 
 base_test() ->
-    Maybe = maybe(1),
+    Maybe = maybe:maybe(1),
     IncFun = inc_fun(),
-    Maybe2 = bind(bind(bind(Maybe, IncFun), IncFun), IncFun),
-    ?assertEqual(extract(Maybe2), 4).
+    Maybe2 = maybe:bind(maybe:bind(maybe:bind(Maybe, IncFun), IncFun), IncFun),
+    ?assertEqual(maybe:extract(Maybe2), 4).
 
 pipe_test() ->
-    Maybe = maybe(1),
+    Maybe = maybe:maybe(1),
     IncFun = inc_fun(),
-    Maybe2 = pipe(Maybe, [IncFun, IncFun, IncFun]),
-    ?assertEqual(extract(Maybe2), 4).
+    Maybe2 = (compose:pipe([
+        (curry:curry_right(fun maybe:bind/2))(IncFun),
+        (curry:curry_right(fun maybe:bind/2))(IncFun),
+        (curry:curry_right(fun maybe:bind/2))(IncFun)
+    ]))(Maybe),
+    ?assertEqual(maybe:extract(Maybe2), 4).
 
 undefined_test() ->
-    Maybe = maybe(1),
+    Maybe = maybe:maybe(1),
     IncFun = inc_fun(),
-    Maybe2 = bind(bind(bind(Maybe, IncFun), fun(_) -> maybe(undefined) end), IncFun),
-    ?assertEqual(extract(Maybe2), undefined).
+    Maybe2 = maybe:bind(maybe:bind(maybe:bind(Maybe, IncFun), fun(_) -> maybe:maybe(undefined) end), IncFun),
+    ?assertEqual(maybe:extract(Maybe2), undefined).
 
 dive_test() ->
-    Maybe = maybe(1),
+    Maybe = maybe:maybe(1),
     IncFun = inc_fun(),
-    Maybe2 =
-    pipe(Maybe, [
-        fun(X) -> maybe({dive, maybe(X), [IncFun || _ <- lists:seq(1, 10)]}) end
-    ]),
-    ?assertEqual(extract(Maybe2), 11).
+    Maybe2 = (compose:pipe([
+        fun(_) -> {dive, [(curry:curry_right(fun maybe:bind/2))(IncFun) || _ <- lists:seq(1, 10)]} end
+    ]))(Maybe),
+    ?assertEqual(maybe:extract(Maybe2), 11).
 
 inc_fun() ->
-    fun(X) -> maybe(X + 1) end.
+    fun(X) -> maybe:maybe(X + 1) end.
 

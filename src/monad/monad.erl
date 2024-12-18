@@ -1,7 +1,5 @@
 -module(monad).
 
--export([pipe/3]).
-
 %% RECOMMENDED
 -export_type([
     monad/1,
@@ -35,53 +33,4 @@
 
 %% Нужна для вытаскивывания зачёрнутого значения и оптимизации рекурсии пайпа
 -callback extract(monad(X)) -> extract_ret(X).
-
-%%--------------------------------------------------------------------
-%% @doc
--spec pipe(Mod :: module(), Monad :: monad(), ListFun :: [ffun()]) ->
-    monad().
-%%--------------------------------------------------------------------
-pipe(Mod, Monad, ListFun) ->
-    pipe(
-        fun Mod:bind/2,
-        fun Mod:extract/1,
-        Monad,
-        [ListFun]
-    ).
-%%--------------------------------------------------------------------
-
-%%--------------------------------------------------------------------
-%% @doc
--spec pipe(
-    %% Mod:bind/2
-    BindFun :: fun((Monad, ffun(X, Y)) ->
-        Monad | monad(extract_ret(Y))),
-    %% Mod:extract/1
-    ExtractFun :: fun((Monad) -> extract_ret(X)),
-    Monad,
-    ListFun :: [[ffun()]]
-) ->
-    monad()
-when
-    Monad :: monad(extract_ret(X)).
-%%--------------------------------------------------------------------
-pipe(_BindFun, _AccFun, Monad, []) ->
-    Monad;
-
-pipe(BindFun, ExtractFun, Monad, [[] | T]) ->
-    pipe(BindFun, ExtractFun, Monad, T);
-
-pipe(BindFun, ExtractFun, Monad, [H | T]) ->
-    [H2 | T2] = H,
-    Monad2 = BindFun(Monad, H2),
-    case ExtractFun(Monad2) of
-        {dive, Monad3, L2} ->
-            L3 = [L2] ++ [T2 | T],
-            pipe(BindFun, ExtractFun, Monad3, L3);
-
-        _ok ->
-            L2 = [T2 | T],
-            pipe(BindFun, ExtractFun, Monad2, L2)
-    end.
-%%--------------------------------------------------------------------
 

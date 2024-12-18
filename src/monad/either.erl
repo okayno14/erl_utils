@@ -5,7 +5,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([
-    pipe/2,
     left/1,
     right/1
 ]).
@@ -46,15 +45,6 @@
 -type ffun() :: ffun(term(), term()).
 -type ffun(X) :: ffun(X, X).
 -type ffun(X, Y) :: monad:ffun(X, undefined) | monad:ffun(X, Y).
-
-%%--------------------------------------------------------------------
-%% @doc
--spec pipe(Either :: either(), ListFun :: [ffun()]) ->
-    either().
-%%--------------------------------------------------------------------
-pipe(Either, ListFun) ->
-    monad:pipe(?MODULE, Either, ListFun).
-%%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -114,11 +104,11 @@ base_test() ->
     PersonFun = fun person/2,
     NameFun = fun name/1,
 
-    Either = right(DB),
+    Either = either:right(DB),
 
     %% Happy path
-    Either2 = bind(bind(Either, (curry:curry_right(PersonFun))(2)), NameFun),
-    ?assertEqual(extract(Either2), "b").
+    Either2 = either:bind(either:bind(Either, (curry:curry_right(PersonFun))(2)), NameFun),
+    ?assertEqual(either:extract(Either2), "b").
 
 error_test() ->
     DB = #{1 => #{name => "a"}, 2 => #{name => "b"}},
@@ -126,36 +116,37 @@ error_test() ->
     PersonFun = fun person/2,
     NameFun = fun name/1,
 
-    Either = right(DB),
+    Either = either:right(DB),
 
     %% Fail
-    Either2 = bind(bind(Either, (curry:curry_right(PersonFun))(3)), NameFun),
-    ?assertEqual(extract(Either2), {error, not_found}).
+    Either2 = either:bind(either:bind(Either, (curry:curry_right(PersonFun))(3)), NameFun),
+    ?assertEqual(either:extract(Either2), {error, not_found}).
 
 dive_test() ->
-    Either = right(1),
-    IncFun = fun(X) -> right(X + 1) end,
-    Either2 =
-    pipe(Either, [
-        fun(X) -> right({dive, right(X), [IncFun || _ <- lists:seq(1, 10)]}) end
-    ]),
-    ?assertEqual(extract(Either2), 11).
+    Either = either:right(1),
+    IncFun = fun(X) -> either:right(X + 1) end,
+    Either2 = (compose:pipe([
+        fun(_) ->
+            {dive, [(curry:curry_right(fun either:bind/2))(IncFun) || _ <- lists:seq(1, 10)]}
+        end
+    ]))(Either),
+    ?assertEqual(either:extract(Either2), 11).
 
 person(DB, ID) ->
     case maps:get(ID, DB, undefined) of
         undefined ->
-            left({error, not_found});
+            either:left({error, not_found});
 
         Person ->
-            right(Person)
+            either:right(Person)
     end.
 
 name(Person) ->
     case maps:get(name, Person, undefined) of
         undefined ->
-            left({error, invalid});
+            either:left({error, invalid});
 
         Name ->
-            right(Name)
+            either:right(Name)
     end.
 

@@ -5,7 +5,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([
-    pipe/2,
     validation/1,
     validation_error/1,
     error_stack/1
@@ -51,15 +50,6 @@
 -type ffun() :: ffun(term(), term()).
 -type ffun(X) :: ffun(X, X).
 -type ffun(X, Y) :: monad:ffun(X, undefined) | monad:ffun(X, Y).
-
-%%--------------------------------------------------------------------
-%% @doc
--spec pipe(Validation :: validation(), ListFun :: [monad:ffun()]) ->
-    Validation2 :: validation().
-%%--------------------------------------------------------------------
-pipe(Validation, ListFun) ->
-    monad:pipe(?MODULE, Validation, ListFun).
-%%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc Скопировать ErrorStack, перетащить в новый объект,
@@ -191,24 +181,18 @@ error_test() ->
     CheckNameFun = fun check_name/1,
     CheckAgeFun = fun check_age/1,
 
-    Status = validation:bind(validation:bind(validation:bind(validation:validation(UserInit), CheckIdFun), CheckNameFun), CheckAgeFun),
+    Status = validation:bind(
+        validation:bind(
+            validation:bind(
+                validation:validation(UserInit), CheckIdFun
+            ), CheckNameFun
+        ), CheckAgeFun
+    ),
 
     ?assertEqual(UserInit, validation:extract(Status)),
     ?assertEqual([{error, {age, forbidden}}, {error, {id, negative_value}}], validation:error_stack(Status)).
 
 pipe_test() ->
-    UserInit = #{id => 100, name => "John Doe", age => 25},
-
-    CheckIdFun = fun check_id/1,
-    CheckNameFun = fun check_name/1,
-    CheckAgeFun = fun check_age/1,
-
-    Status = validation:pipe(validation:validation(UserInit), [CheckIdFun, CheckNameFun, CheckAgeFun]),
-
-    ?assertEqual(UserInit, validation:extract(Status)),
-    ?assertEqual([], validation:error_stack(Status)).
-
-common_pipe_test() ->
     UserInit = #{id => 100, name => "John Doe", age => 25},
 
     CheckIdFun = fun check_id/1,
@@ -228,7 +212,7 @@ common_pipe_test() ->
     ?assertEqual(UserInit, validation:extract(Status)),
     ?assertEqual([], validation:error_stack(Status)).
 
-common_pipe_curry_test() ->
+pipe_curry_test() ->
     UserInit = #{id => 100, name => "John Doe", age => 25},
 
     CheckIdFun = fun check_id/1,

@@ -18,6 +18,9 @@
 ]).
 
 -export_type([
+    validation_monad/0,
+    validation_monad/1,
+
     validation/0,
     validation/1,
 
@@ -36,15 +39,27 @@
     data :: monad:extract_ret()
 }).
 
+-type validation_monad() :: validation() | validation_error().
+-type validation_monad(X) :: validation(X) | validation_error(X).
+
 -type validation() :: #validation{}.
 -type validation(X) :: validation(X).
+
+-type validation_error() :: #validation_error{}.
+-type validation_error(X) :: validation_error(X).
 
 -type ffun() :: ffun(term(), term()).
 -type ffun(X) :: ffun(X, X).
 -type ffun(X, Y) :: monad:ffun(X, undefined) | monad:ffun(X, Y).
 
+%%--------------------------------------------------------------------
+%% @doc
+-spec pipe(Validation :: validation(), ListFun :: [monad:ffun()]) ->
+    Validation2 :: validation().
+%%--------------------------------------------------------------------
 pipe(Validation, ListFun) ->
     monad:pipe(?MODULE, Validation, ListFun).
+%%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc Скопировать ErrorStack, перетащить в новый объект,
@@ -82,8 +97,14 @@ validation(Data) ->
     #validation{data = Data, error_stack = []}.
 %%--------------------------------------------------------------------
 
+%%--------------------------------------------------------------------
+%% @doc
+-spec validation_error(ErrorStack :: list(X)) ->
+    validation_error(X).
+%%--------------------------------------------------------------------
 validation_error(ErrorStack) ->
     #validation_error{data = undefined, error_stack = ErrorStack}.
+%%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -99,6 +120,11 @@ extract(ValidationError = #validation_error{}) ->
     Data.
 %%--------------------------------------------------------------------
 
+%%--------------------------------------------------------------------
+%% @doc
+-spec error_stack(validation_monad()) ->
+    list().
+%%--------------------------------------------------------------------
 error_stack(Validation = #validation{}) ->
     #validation{error_stack = ErrorStack} = Validation,
     ErrorStack;
@@ -106,7 +132,13 @@ error_stack(Validation = #validation{}) ->
 error_stack(ValidationError = #validation_error{}) ->
     #validation_error{error_stack = ErrorStack} = ValidationError,
     ErrorStack.
+%%--------------------------------------------------------------------
 
+%%--------------------------------------------------------------------
+%% @doc
+-spec push_error_stack(Validation :: validation_monad(), ErrorStackTail :: list()) ->
+    Validation2 :: validation_monad().
+%%--------------------------------------------------------------------
 push_error_stack(Validation = #validation{}, ErrorStackTail) ->
     Validation#validation{
         error_stack = error_stack(Validation) ++ ErrorStackTail
@@ -116,12 +148,19 @@ push_error_stack(ValidationError = #validation_error{}, ErrorStackTail) ->
     ValidationError#validation_error{
         error_stack = error_stack(ValidationError) ++ ErrorStackTail
     }.
+%%--------------------------------------------------------------------
 
+%%--------------------------------------------------------------------
+%% @doc
+-spec set_data(Validation :: validation(), _Data) ->
+    Validation2 :: validation_monad().
+%%--------------------------------------------------------------------
 set_data(Validation = #validation{}, Data) ->
     Validation#validation{data = Data};
 
 set_data(ValidationError = #validation_error{}, Data) ->
     ValidationError#validation_error{data = Data}.
+%%--------------------------------------------------------------------
 
 %%%===================================================================
 %%% test
@@ -134,10 +173,16 @@ base_test() ->
     CheckNameFun = fun check_name/1,
     CheckAgeFun = fun check_age/1,
 
-    Status = bind(bind(bind(validation(UserInit), CheckIdFun), CheckNameFun), CheckAgeFun),
+    Status = validation:bind(
+        validation:bind(
+            validation:bind(
+                validation:validation(UserInit),
+                CheckIdFun),
+            CheckNameFun),
+        CheckAgeFun),
 
-    ?assertEqual(UserInit, extract(Status)),
-    ?assertEqual([], error_stack(Status)).
+    ?assertEqual(UserInit, validation:extract(Status)),
+    ?assertEqual([], validation:error_stack(Status)).
 
 error_test() ->
     UserInit = #{id => -1, name => "John Doe", age => 16},
@@ -146,10 +191,10 @@ error_test() ->
     CheckNameFun = fun check_name/1,
     CheckAgeFun = fun check_age/1,
 
-    Status = bind(bind(bind(validation(UserInit), CheckIdFun), CheckNameFun), CheckAgeFun),
+    Status = validation:bind(validation:bind(validation:bind(validation:validation(UserInit), CheckIdFun), CheckNameFun), CheckAgeFun),
 
-    ?assertEqual(UserInit, extract(Status)),
-    ?assertEqual([{error, {age, forbidden}}, {error, {id, negative_value}}], error_stack(Status)).
+    ?assertEqual(UserInit, validation:extract(Status)),
+    ?assertEqual([{error, {age, forbidden}}, {error, {id, negative_value}}], validation:error_stack(Status)).
 
 pipe_test() ->
     UserInit = #{id => 100, name => "John Doe", age => 25},
@@ -158,10 +203,50 @@ pipe_test() ->
     CheckNameFun = fun check_name/1,
     CheckAgeFun = fun check_age/1,
 
-    Status = pipe(validation(UserInit), [CheckIdFun, CheckNameFun, CheckAgeFun]),
+    Status = validation:pipe(validation:validation(UserInit), [CheckIdFun, CheckNameFun, CheckAgeFun]),
 
-    ?assertEqual(UserInit, extract(Status)),
-    ?assertEqual([], error_stack(Status)).
+    ?assertEqual(UserInit, validation:extract(Status)),
+    ?assertEqual([], validation:error_stack(Status)).
+
+common_pipe_test() ->
+    UserInit = #{id => 100, name => "John Doe", age => 25},
+
+    CheckIdFun = fun check_id/1,
+    CheckNameFun = fun check_name/1,
+    CheckAgeFun = fun check_age/1,
+
+    Status =
+    compose:run_pipe(
+        [
+            fun(Validation) -> validation:bind(Validation, CheckIdFun) end,
+            fun(Validation) -> validation:bind(Validation, CheckNameFun) end,
+            fun(Validation) -> validation:bind(Validation, CheckAgeFun) end
+        ],
+        fun() -> validation:validation(UserInit) end
+    ),
+
+    ?assertEqual(UserInit, validation:extract(Status)),
+    ?assertEqual([], validation:error_stack(Status)).
+
+common_pipe_curry_test() ->
+    UserInit = #{id => 100, name => "John Doe", age => 25},
+
+    CheckIdFun = fun check_id/1,
+    CheckNameFun = fun check_name/1,
+    CheckAgeFun = fun check_age/1,
+
+    Status =
+    compose:run_pipe(
+        [
+            (curry:make_curry(fun validation:bind/2, right))(CheckIdFun),
+            (curry:make_curry(fun validation:bind/2, right))(CheckNameFun),
+            (curry:make_curry(fun validation:bind/2, right))(CheckAgeFun)
+        ],
+        fun() -> validation:validation(UserInit) end
+    ),
+
+    ?assertEqual(UserInit, validation:extract(Status)),
+    ?assertEqual([], validation:error_stack(Status)).
 
 check_id(User) ->
     case maps:get(id, User, undefined) of

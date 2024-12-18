@@ -70,8 +70,11 @@ run_compose(FunList, AccFun) ->
 -spec run_pipe(FunList :: funlist2(), AccFun :: acc0()) ->
     result().
 %%--------------------------------------------------------------------
-run_pipe(FunList, AccFun) ->
-    run_pipe_([[fun(_) -> AccFun() end | FunList]], undefined).
+run_pipe(FunList, AccFun) when is_function(AccFun) ->
+    run_pipe_([[fun(_) -> AccFun() end | FunList]], undefined);
+
+run_pipe(FunList, Acc) ->
+    run_pipe_([FunList], Acc).
 
 run_pipe_([], Acc) ->
     Acc;
@@ -125,36 +128,49 @@ catch_wrap(Fun) ->
 
 run_pipe_1_test() ->
     IncFun = fun(X) -> X + 1 end,
-    11 =:=
+    Result =
     run_pipe([
         IncFun,
         fun(_X) -> {dive, [IncFun || _ <- lists:seq(1, 10)]} end
-    ], fun() -> 0 end).
+    ], fun() -> 0 end),
+    ?assertEqual(11, Result).
 
 run_pipe_2_test() ->
     IncFun = fun(X) -> X + 1 end,
-    {1, {error, my_reason}} =:=
+    Result =
     run_pipe([
         IncFun,
         fun(X) -> {X, {error, my_reason}} end,
         fun(_X) -> {dive, [IncFun || _ <- lists:seq(1, 10)]} end
-    ], fun() -> 0 end).
+    ], fun() -> 0 end),
+    ?assertEqual({1, {error, my_reason}}, Result).
 
 run_pipe_3_test() ->
     IncFun = fun(X) -> X + 1 end,
-    {error, my_reason} =:=
+    Result =
     run_pipe([
         IncFun,
         fun(_X) -> {error, my_reason} end,
         fun(_X) -> {dive, [IncFun || _ <- lists:seq(1, 10)]} end
-    ], fun() -> 0 end).
+    ], fun() -> 0 end),
+    ?assertEqual({error, my_reason}, Result).
 
 run_pipe_4_test() ->
     IncFun = fun(X) -> X + 1 end,
-    error =:=
+    Result =
     run_pipe([
         IncFun,
         fun(_X) -> error end,
         fun(_X) -> {dive, [IncFun || _ <- lists:seq(1, 10)]} end
-    ], fun() -> 0 end).
+    ], fun() -> 0 end),
+    ?assertEqual(error, Result).
+
+run_pipe_5_test() ->
+    IncFun = fun(X) -> X + 1 end,
+    Result =
+    run_pipe([
+        IncFun,
+        fun(_X) -> {dive, [IncFun || _ <- lists:seq(1, 10)]} end
+    ], 0),
+    ?assertEqual(11, Result).
 

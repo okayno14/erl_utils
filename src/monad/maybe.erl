@@ -5,7 +5,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([
-    maybe/1
+    value/1,
+    empty/0
 ]).
 
 %% monad
@@ -18,17 +19,26 @@
     maybe/0,
     maybe/1,
 
+    value/0,
+    value/1,
+
+    empty/0,
+
     ffun/1,
     ffun/2,
     ffun/0
 ]).
 
--record(maybe, {
-    data :: undefined | monad:extract_ret()
-}).
+-record(value, {data :: monad:extract_ret()}).
+-record(empty, {data = undefined}).
 
--type maybe() :: monad:monad().
--type maybe(X) :: monad:monad(X).
+-type maybe() :: value() | empty().
+-type maybe(X) :: value(X).
+
+-type value() :: #value{}.
+-type value(X) :: monad:monad(X).
+
+-type empty() :: #empty{}.
 
 -type ffun() :: ffun(term(), term()).
 -type ffun(X) :: ffun(X, X).
@@ -41,14 +51,12 @@
 when
     Maybe :: maybe(monad:extract_ret(X)).
 %%--------------------------------------------------------------------
-flatmap(Maybe = #maybe{}, F) ->
-    case extract(Maybe) of
-        undefined ->
-            Maybe;
+flatmap(Value = #value{}, F) ->
+    #value{data = Data} = Value,
+    F(Data);
 
-        _ ->
-            F(extract(Maybe))
-    end.
+flatmap(Empty = #empty{}, _F) ->
+    Empty.
 %%--------------------------------------------------------------------
 
 %%%===================================================================
@@ -57,20 +65,32 @@ flatmap(Maybe = #maybe{}, F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec maybe(Data) ->
-    maybe(Data).
+-spec value(Data :: monad:extract_ret(X)) ->
+    value(X).
 %%--------------------------------------------------------------------
-maybe(Data) ->
-    #maybe{data = Data}.
+value(Data) ->
+    #value{data = Data}.
+%%--------------------------------------------------------------------
+
+%%--------------------------------------------------------------------
+%% @doc
+-spec empty() ->
+    empty().
+%%--------------------------------------------------------------------
+empty() ->
+    #empty{}.
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc
 -spec extract(Maybe :: maybe(X)) ->
-    monad:extract_ret(X | undefined).
+    monad:extract_ret(X) | undefined.
 %%--------------------------------------------------------------------
-extract(Maybe = #maybe{}) ->
-    Maybe#maybe.data.
+extract(Value = #value{}) ->
+    Value#value.data;
+
+extract(Empty = #empty{}) ->
+    Empty#empty.data.
 %%--------------------------------------------------------------------
 
 %%%===================================================================
@@ -78,13 +98,13 @@ extract(Maybe = #maybe{}) ->
 %%%===================================================================
 
 base_test() ->
-    Maybe = maybe:maybe(1),
+    Maybe = maybe:value(1),
     IncFun = inc_fun(),
     Maybe2 = maybe:flatmap(maybe:flatmap(maybe:flatmap(Maybe, IncFun), IncFun), IncFun),
     ?assertEqual(maybe:extract(Maybe2), 4).
 
 pipe_test() ->
-    Maybe = maybe:maybe(1),
+    Maybe = maybe:value(1),
     IncFun = inc_fun(),
     Maybe2 = (compose:pipe([
         (curry:curry_right(fun maybe:flatmap/2))(IncFun),
@@ -94,13 +114,13 @@ pipe_test() ->
     ?assertEqual(maybe:extract(Maybe2), 4).
 
 undefined_test() ->
-    Maybe = maybe:maybe(1),
+    Maybe = maybe:value(1),
     IncFun = inc_fun(),
-    Maybe2 = maybe:flatmap(maybe:flatmap(maybe:flatmap(Maybe, IncFun), fun(_) -> maybe:maybe(undefined) end), IncFun),
+    Maybe2 = maybe:flatmap(maybe:flatmap(maybe:flatmap(Maybe, IncFun), fun(_) -> maybe:empty() end), IncFun),
     ?assertEqual(maybe:extract(Maybe2), undefined).
 
 dive_test() ->
-    Maybe = maybe:maybe(1),
+    Maybe = maybe:value(1),
     IncFun = inc_fun(),
     Maybe2 = (compose:pipe([
         fun(_) -> {dive, [(curry:curry_right(fun maybe:flatmap/2))(IncFun) || _ <- lists:seq(1, 10)]} end
@@ -108,5 +128,5 @@ dive_test() ->
     ?assertEqual(maybe:extract(Maybe2), 11).
 
 inc_fun() ->
-    fun(X) -> maybe:maybe(X + 1) end.
+    fun(X) -> maybe:value(X + 1) end.
 

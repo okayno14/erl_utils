@@ -1,4 +1,4 @@
--module(io_lib).
+-module(io_lib2).
 
 -export([
 	read_stdin_lines/0,

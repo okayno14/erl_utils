@@ -12,6 +12,7 @@
 
 %% monad
 -export([
+    map/2,
     flatmap/2,
     extract/1
 ]).
@@ -21,11 +22,7 @@
     validation_monad/1,
 
     validation/0,
-    validation/1,
-
-    ffun/1,
-    ffun/2,
-    ffun/0
+    validation/1
 ]).
 
 -record(validation, {
@@ -47,14 +44,18 @@
 -type validation_error() :: #validation_error{}.
 -type validation_error(X) :: validation_error(X).
 
--type ffun() :: ffun(term(), term()).
--type ffun(X) :: ffun(X, X).
--type ffun(X, Y) :: monad:ffun(X, undefined) | monad:ffun(X, Y).
+%%--------------------------------------------------------------------
+-spec map(Validation, F :: monad:ffun2(X, Y)) ->
+    Validation | validation(monad:extract_ret(Y))
+when
+    Validation :: validation(monad:extract_ret(X)).
+%%--------------------------------------------------------------------
+map(Validation, F) ->
+    set_data(Validation, F(extract(Validation))).
+%%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
-%% @doc Скопировать ErrorStack, перетащить в новый объект,
-%%
--spec flatmap(Validation, F :: ffun(X, Y)) ->
+-spec flatmap(Validation, F :: monad:ffun(X, Y)) ->
     Validation | validation(monad:extract_ret(Y))
 when
     Validation :: validation(monad:extract_ret(X)).
@@ -110,6 +111,7 @@ extract(ValidationError = #validation_error{}) ->
     Data.
 %%--------------------------------------------------------------------
 
+%% TODO сделать тест на порядок элементов списка
 %%--------------------------------------------------------------------
 %% @doc
 -spec error_stack(validation_monad()) ->
@@ -156,48 +158,68 @@ set_data(ValidationError = #validation_error{}, Data) ->
 %%% test
 %%%===================================================================
 
-base_test() ->
+flatmap_test_() ->
+    [
+        {"base test", fun case1/0},
+        {"error test", fun case2/0},
+        {"pipe test", fun case3/0},
+        {"pipe curry test", fun case4/0}
+    ].
+
+map_test_() ->
+    [
+        {"base test", fun case5/0}
+    ].
+
+case1() ->
     UserInit = #{id => 100, name => "John Doe", age => 25},
 
-    CheckIdFun = fun check_id/1,
-    CheckNameFun = fun check_name/1,
-    CheckAgeFun = fun check_age/1,
+    CheckIdFun = monadize(fun check_id/1),
+    CheckNameFun = monadize(fun check_name/1),
+    CheckAgeFun = monadize(fun check_age/1),
+
+    Status =
+    validation:flatmap(
+        validation:flatmap(
+            validation:flatmap(
+                validation:validation(UserInit),
+                CheckIdFun
+            ),
+            CheckNameFun
+        ),
+        CheckAgeFun
+    ),
+
+    ?assertEqual(UserInit, validation:extract(Status)),
+    ?assertEqual([], validation:error_stack(Status)).
+
+case2() ->
+    UserInit = #{id => -1, name => "John Doe", age => 16},
+
+    CheckIdFun = monadize(fun check_id/1),
+    CheckNameFun = monadize(fun check_name/1),
+    CheckAgeFun = monadize(fun check_age/1),
 
     Status = validation:flatmap(
         validation:flatmap(
             validation:flatmap(
                 validation:validation(UserInit),
-                CheckIdFun),
-            CheckNameFun),
-        CheckAgeFun),
-
-    ?assertEqual(UserInit, validation:extract(Status)),
-    ?assertEqual([], validation:error_stack(Status)).
-
-error_test() ->
-    UserInit = #{id => -1, name => "John Doe", age => 16},
-
-    CheckIdFun = fun check_id/1,
-    CheckNameFun = fun check_name/1,
-    CheckAgeFun = fun check_age/1,
-
-    Status = validation:flatmap(
-        validation:flatmap(
-            validation:flatmap(
-                validation:validation(UserInit), CheckIdFun
-            ), CheckNameFun
-        ), CheckAgeFun
+                CheckIdFun
+            ),
+            CheckNameFun
+        ),
+        CheckAgeFun
     ),
 
     ?assertEqual(UserInit, validation:extract(Status)),
     ?assertEqual([{error, {age, forbidden}}, {error, {id, negative_value}}], validation:error_stack(Status)).
 
-pipe_test() ->
+case3() ->
     UserInit = #{id => 100, name => "John Doe", age => 25},
 
-    CheckIdFun = fun check_id/1,
-    CheckNameFun = fun check_name/1,
-    CheckAgeFun = fun check_age/1,
+    CheckIdFun = monadize(fun check_id/1),
+    CheckNameFun = monadize(fun check_name/1),
+    CheckAgeFun = monadize(fun check_age/1),
 
     Status =
     compose:run_pipe(
@@ -212,12 +234,12 @@ pipe_test() ->
     ?assertEqual(UserInit, validation:extract(Status)),
     ?assertEqual([], validation:error_stack(Status)).
 
-pipe_curry_test() ->
+case4() ->
     UserInit = #{id => 100, name => "John Doe", age => 25},
 
-    CheckIdFun = fun check_id/1,
-    CheckNameFun = fun check_name/1,
-    CheckAgeFun = fun check_age/1,
+    CheckIdFun = monadize(fun check_id/1),
+    CheckNameFun = monadize(fun check_name/1),
+    CheckAgeFun = monadize(fun check_age/1),
 
     Status =
     compose:run_pipe(
@@ -232,53 +254,95 @@ pipe_curry_test() ->
     ?assertEqual(UserInit, validation:extract(Status)),
     ?assertEqual([], validation:error_stack(Status)).
 
+case5() ->
+    UserInit = #{id => 100, name => "John Doe", age => 25},
+
+    CheckIdFun = monadize(fun check_id/1),
+    CheckNameFun = monadize(fun check_name/1),
+    CheckAgeFun = monadize(fun check_age/1),
+
+    Status =
+    validation:map(
+        validation:flatmap(
+            validation:flatmap(
+                validation:flatmap(
+                    validation:validation(UserInit),
+                    CheckIdFun
+                ),
+                CheckNameFun
+            ),
+            CheckAgeFun
+        ),
+        fun(UserArg) -> UserArg#{age => maps:get(age, UserArg) + 10} end
+    ),
+
+    ?assertEqual(35, maps:get(age, validation:extract(Status))),
+    ?assertEqual([], validation:error_stack(Status)).
+
+%% @doc
+%% <pre>
+%% Оборачивает функции-валидаторы в апи either.
+%% Позволяет разделить апи работы с сущностью от используемой монады.
+%% </pre>
+%% @end
+monadize(F) ->
+    fun(Data) ->
+        case F(Data) of
+            {ok, Value} ->
+                validation:validation(Value);
+
+            {error, ErrorStack} ->
+                validation:validation_error(ErrorStack)
+        end
+    end.
+
 check_id(User) ->
     case maps:get(id, User, undefined) of
         undefined ->
             Err = {error, {id, not_found}},
-            validation_error([Err]);
+            {error, [Err]};
 
         ID when is_integer(ID) andalso ID < 0 ->
             Err = {error, {id, negative_value}},
-            validation_error([Err]);
+            {error, [Err]};
 
         ID when is_integer(ID) ->
-            validation(User);
+            {ok, User};
 
         _ ->
             Err = {error, {id, unknown_error}},
-            validation_error([Err])
+           {error, [Err]}
     end.
 
 check_name(User) ->
     case maps:get(name, User, undefined) of
         undefined ->
             Err = {error, {name, not_found}},
-            validation_error([Err]);
+            {error, [Err]};
 
         Name when is_list(Name) ->
-            validation(User);
+            {ok, User};
 
         _ ->
             Err = {error, {name, unknown_error}},
-            validation_error([Err])
+            {error, [Err]}
     end.
 
 check_age(User) ->
     case maps:get(age, User, undefined) of
         undefined ->
             Err = {error, {age, not_found}},
-            validation_error([Err]);
+            {error, [Err]};
 
         ID when is_integer(ID) andalso ID < 18 ->
             Err = {error, {age, forbidden}},
-            validation_error([Err]);
+            {error, [Err]};
 
         ID when is_integer(ID) ->
-            validation(User);
+            {ok, User};
 
         _ ->
             Err = {error, {age, unknown_error}},
-            validation_error([Err])
+            {error, [Err]}
     end.
 

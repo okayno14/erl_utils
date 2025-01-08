@@ -11,17 +11,14 @@
 
 %% monad
 -export([
+    map/2,
     flatmap/2,
     extract/1
 ]).
 
 -export_type([
     either/0,
-    either/1,
-
-    ffun/1,
-    ffun/2,
-    ffun/0
+    either/1
 ]).
 
 %% Сюда пишется ошибка, обрывает цепочку исполнения
@@ -42,13 +39,23 @@
 -type right() :: monad:monad().
 -type right(X) :: monad:monad(X).
 
--type ffun() :: ffun(term(), term()).
--type ffun(X) :: ffun(X, X).
--type ffun(X, Y) :: monad:ffun(X, undefined) | monad:ffun(X, Y).
+%%--------------------------------------------------------------------
+%% @doc
+-spec map(Either, F :: monad:ffun2(X, Y)) ->
+    Either | either(monad:extract_ret(Y))
+when
+    Either :: either(monad:extract_ret(X)).
+%%--------------------------------------------------------------------
+map(Left = #left{}, _F) ->
+    Left;
+
+map(Right = #right{}, F) ->
+    right(F(extract(Right))).
+%%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc
--spec flatmap(Either, F :: ffun(X, Y)) ->
+-spec flatmap(Either, F :: monad:ffun(X, Y)) ->
     Either | either(monad:extract_ret(Y))
 when
     Either :: either(monad:extract_ret(X)).
@@ -98,7 +105,20 @@ extract(Either = #right{}) ->
 %%% test
 %%%===================================================================
 
-base_test() ->
+flatmap_test_() ->
+    [
+        {"base test", fun case1/0},
+        {"error test", fun case2/0},
+        {"dive test", fun case3/0}
+    ].
+
+map_test_() ->
+    [
+        {"base test", fun case4/0},
+        {"error test", fun case5/0}
+    ].
+
+case1() ->
     DB = #{1 => #{name => "a"}, 2 => #{name => "b"}},
 
     PersonFun = fun person/2,
@@ -110,7 +130,7 @@ base_test() ->
     Either2 = either:flatmap(either:flatmap(Either, (curry:curry_right(PersonFun))(2)), NameFun),
     ?assertEqual(either:extract(Either2), "b").
 
-error_test() ->
+case2() ->
     DB = #{1 => #{name => "a"}, 2 => #{name => "b"}},
 
     PersonFun = fun person/2,
@@ -122,7 +142,7 @@ error_test() ->
     Either2 = either:flatmap(either:flatmap(Either, (curry:curry_right(PersonFun))(3)), NameFun),
     ?assertEqual(either:extract(Either2), {error, not_found}).
 
-dive_test() ->
+case3() ->
     Either = either:right(1),
     IncFun = fun(X) -> either:right(X + 1) end,
     Either2 = (compose:pipe([
@@ -131,6 +151,18 @@ dive_test() ->
         end
     ]))(Either),
     ?assertEqual(either:extract(Either2), 11).
+
+case4() ->
+    Either = either:right(1),
+    IncFun = fun(X) -> X + 1 end,
+    Either2 = either:map(either:map(either:map(Either, IncFun), IncFun), IncFun),
+    ?assertEqual(4, either:extract(Either2)).
+
+case5() ->
+    Either = either:left(1),
+    IncFun = fun(X) -> X + 1 end,
+    Either2 = either:map(either:map(either:map(Either, IncFun), IncFun), IncFun),
+    ?assertEqual(1, either:extract(Either2)).
 
 person(DB, ID) ->
     case maps:get(ID, DB, undefined) of

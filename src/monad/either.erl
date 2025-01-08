@@ -23,11 +23,11 @@
 
 %% Сюда пишется ошибка, обрывает цепочку исполнения
 -record(left, {
-    data :: monad:extract_ret()
+    data :: term()
 }).
 
 -record(right, {
-    data :: monad:extract_ret()
+    data :: term()
 }).
 
 -type either() :: left() | right().
@@ -42,9 +42,9 @@
 %%--------------------------------------------------------------------
 %% @doc
 -spec map(Either, F :: monad:map_fun(X, Y)) ->
-    Either | either(monad:extract_ret(Y))
+    Either | either(Y)
 when
-    Either :: either(monad:extract_ret(X)).
+    Either :: either(X).
 %%--------------------------------------------------------------------
 map(Left = #left{}, _F) ->
     Left;
@@ -56,9 +56,9 @@ map(Right = #right{}, F) ->
 %%--------------------------------------------------------------------
 %% @doc
 -spec flatmap(Either, F :: monad:flatmap_fun(X, Y)) ->
-    Either | either(monad:extract_ret(Y))
+    Either | either(Y)
 when
-    Either :: either(monad:extract_ret(X)).
+    Either :: either(X).
 %%--------------------------------------------------------------------
 flatmap(Left = #left{}, _F) ->
     Left;
@@ -73,7 +73,7 @@ flatmap(Right = #right{}, F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec left(Data :: monad:extract_ret(X)) ->
+-spec left(Data :: X) ->
     left(X).
 %%--------------------------------------------------------------------
 left(Data) ->
@@ -82,7 +82,7 @@ left(Data) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec right(Data :: monad:extract_ret(X)) ->
+-spec right(Data :: X) ->
     right(X).
 %%--------------------------------------------------------------------
 right(Data) ->
@@ -92,7 +92,7 @@ right(Data) ->
 %%--------------------------------------------------------------------
 %% @doc
 -spec extract(Either :: either(X)) ->
-    monad:extract_ret(X).
+    X.
 %%--------------------------------------------------------------------
 extract(Either = #left{}) ->
     Either#left.data;

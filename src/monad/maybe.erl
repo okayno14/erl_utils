@@ -26,7 +26,7 @@
     empty/0
 ]).
 
--record(value, {data :: monad:extract_ret()}).
+-record(value, {data :: term()}).
 -record(empty, {data = undefined}).
 
 -type maybe() :: value() | empty().
@@ -40,9 +40,9 @@
 %%--------------------------------------------------------------------
 %% @doc
 -spec map(Maybe, F :: monad:map_fun(X, Y)) ->
-    Maybe | maybe(monad:extract_ret(Y))
+    Maybe | maybe(Y)
 when
-    Maybe :: maybe(monad:extract_ret(X)).
+    Maybe :: maybe(X).
 %%--------------------------------------------------------------------
 %% TODO переделать на функциональное апи сущности
 map(Value = #value{}, F) ->
@@ -56,9 +56,9 @@ map(Empty = #empty{}, _F) ->
 %%--------------------------------------------------------------------
 %% @doc
 -spec flatmap(Maybe, F :: monad:flatmap_fun(X, Y)) ->
-    Maybe | maybe(monad:extract_ret(Y))
+    Maybe | maybe(Y)
 when
-    Maybe :: maybe(monad:extract_ret(X)).
+    Maybe :: maybe(X).
 %%--------------------------------------------------------------------
 flatmap(Value = #value{}, F) ->
     #value{data = Data} = Value,
@@ -74,7 +74,7 @@ flatmap(Empty = #empty{}, _F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec value(Data :: monad:extract_ret(X)) ->
+-spec value(Data :: X) ->
     value(X).
 %%--------------------------------------------------------------------
 value(Data) ->
@@ -93,7 +93,7 @@ empty() ->
 %%--------------------------------------------------------------------
 %% @doc
 -spec extract(Maybe :: maybe(X)) ->
-    monad:extract_ret(X) | undefined.
+    X | undefined.
 %%--------------------------------------------------------------------
 extract(Value = #value{}) ->
     Value#value.data;

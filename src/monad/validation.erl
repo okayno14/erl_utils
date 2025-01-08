@@ -26,13 +26,13 @@
 ]).
 
 -record(validation, {
-    error_stack :: [monad:extract_ret()],
-    data :: monad:extract_ret()
+    error_stack :: [term()],
+    data :: term()
 }).
 
 -record(validation_error, {
-    error_stack :: [monad:extract_ret()],
-    data :: monad:extract_ret()
+    error_stack :: [term()],
+    data :: term()
 }).
 
 -type validation_monad() :: validation() | validation_error().
@@ -45,20 +45,16 @@
 -type validation_error(X) :: validation_error(X).
 
 %%--------------------------------------------------------------------
--spec map(Validation, F :: monad:map_fun(X, Y)) ->
-    Validation | validation(monad:extract_ret(Y))
-when
-    Validation :: validation(monad:extract_ret(X)).
+-spec map(validation(X), F :: monad:map_fun(X, Y)) ->
+    validation(Y).
 %%--------------------------------------------------------------------
 map(Validation, F) ->
     set_data(Validation, F(extract(Validation))).
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
--spec flatmap(Validation, F :: monad:flatmap_fun(X, Y)) ->
-    Validation | validation(monad:extract_ret(Y))
-when
-    Validation :: validation(monad:extract_ret(X)).
+-spec flatmap(validation(X), F :: monad:flatmap_fun(X, Y)) ->
+    validation(Y).
 %%--------------------------------------------------------------------
 flatmap(Validation, F) ->
     ErrorStack = error_stack(Validation),
@@ -81,7 +77,7 @@ flatmap(Validation, F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec validation(Data :: monad:extract_ret(X)) ->
+-spec validation(Data :: X) ->
     validation(X).
 %%--------------------------------------------------------------------
 validation(Data) ->
@@ -99,8 +95,8 @@ validation_error(ErrorStack) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec extract(Validation :: validation()) ->
-    [monad:extract_ret()].
+-spec extract(Validation :: validation(X)) ->
+    X.
 %%--------------------------------------------------------------------
 extract(Validation = #validation{}) ->
     #validation{data = Data} = Validation,

@@ -5,18 +5,18 @@
     monad/1,
     extract_ret/1,
 
-    ffun2/1,
-    ffun2/2,
+    map_fun/1,
+    map_fun/2,
 
-    ffun/1,
-    ffun/2
+    flatmap_fun/1,
+    flatmap_fun/2
 ]).
 
 -export_type([
     monad/0,
     extract_ret/0,
-    ffun2/0,
-    ffun/0
+    map_fun/0,
+    flatmap_fun/0
 ]).
 
 -type monad() :: monad().
@@ -25,20 +25,18 @@
 -type extract_ret() :: extract_ret(term()).
 -type extract_ret(Y) :: Y.
 
-%% TODO переименовать в map_fun
--type ffun2() :: ffun2(term(), term()).
--type ffun2(X) :: ffun2(X, X).
--type ffun2(X, Y) :: fun((X) -> Y).
+-type map_fun() :: map_fun(term(), term()).
+-type map_fun(X) :: map_fun(X, X).
+-type map_fun(X, Y) :: fun((X) -> Y).
 
-%% TODO переименовать в flatmap_fun
--type ffun() :: ffun(term(), term()).
--type ffun(X) :: ffun(X, X).
--type ffun(X, Y) :: fun((X) -> monad(extract_ret(Y))).
+-type flatmap_fun() :: flatmap_fun(term(), term()).
+-type flatmap_fun(X) :: flatmap_fun(X, X).
+-type flatmap_fun(X, Y) :: fun((X) -> monad(extract_ret(Y))).
 
--callback map(Monad, ffun2(X, Y)) -> Monad | monad(extract_ret(Y))  when
+-callback map(Monad, map_fun(X, Y)) -> Monad | monad(extract_ret(Y))  when
     Monad :: monad(extract_ret(X)).
 
--callback flatmap(Monad, ffun(X, Y)) -> Monad | monad(extract_ret(Y)) when
+-callback flatmap(Monad, flatmap_fun(X, Y)) -> Monad | monad(extract_ret(Y)) when
     Monad :: monad(extract_ret(X)).
 
 %% Нужна для вытаскивывания зачёрнутого значения

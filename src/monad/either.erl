@@ -41,7 +41,7 @@
 
 %%--------------------------------------------------------------------
 %% @doc
--spec map(Either, F :: monad:ffun2(X, Y)) ->
+-spec map(Either, F :: monad:map_fun(X, Y)) ->
     Either | either(monad:extract_ret(Y))
 when
     Either :: either(monad:extract_ret(X)).
@@ -55,7 +55,7 @@ map(Right = #right{}, F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec flatmap(Either, F :: monad:ffun(X, Y)) ->
+-spec flatmap(Either, F :: monad:flatmap_fun(X, Y)) ->
     Either | either(monad:extract_ret(Y))
 when
     Either :: either(monad:extract_ret(X)).

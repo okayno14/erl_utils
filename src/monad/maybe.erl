@@ -39,7 +39,7 @@
 
 %%--------------------------------------------------------------------
 %% @doc
--spec map(Maybe, F :: monad:ffun2(X, Y)) ->
+-spec map(Maybe, F :: monad:map_fun(X, Y)) ->
     Maybe | maybe(monad:extract_ret(Y))
 when
     Maybe :: maybe(monad:extract_ret(X)).
@@ -55,7 +55,7 @@ map(Empty = #empty{}, _F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec flatmap(Maybe, F :: monad:ffun(X, Y)) ->
+-spec flatmap(Maybe, F :: monad:flatmap_fun(X, Y)) ->
     Maybe | maybe(monad:extract_ret(Y))
 when
     Maybe :: maybe(monad:extract_ret(X)).

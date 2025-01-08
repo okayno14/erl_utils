@@ -45,7 +45,7 @@
 -type validation_error(X) :: validation_error(X).
 
 %%--------------------------------------------------------------------
--spec map(Validation, F :: monad:ffun2(X, Y)) ->
+-spec map(Validation, F :: monad:map_fun(X, Y)) ->
     Validation | validation(monad:extract_ret(Y))
 when
     Validation :: validation(monad:extract_ret(X)).
@@ -55,7 +55,7 @@ map(Validation, F) ->
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
--spec flatmap(Validation, F :: monad:ffun(X, Y)) ->
+-spec flatmap(Validation, F :: monad:flatmap_fun(X, Y)) ->
     Validation | validation(monad:extract_ret(Y))
 when
     Validation :: validation(monad:extract_ret(X)).

@@ -7,7 +7,7 @@
 -export([
     validation/1,
     validation_error/1,
-    error_stack/1
+    extract_error_stack/1
 ]).
 
 %% monad
@@ -111,7 +111,15 @@ extract(ValidationError = #validation_error{}) ->
     Data.
 %%--------------------------------------------------------------------
 
-%% TODO сделать тест на порядок элементов списка
+%%--------------------------------------------------------------------
+%% @doc
+-spec extract_error_stack(Validation :: validation()) ->
+    list().
+%%--------------------------------------------------------------------
+extract_error_stack(Validation) ->
+    lists:reverse(error_stack(Validation)).
+%%--------------------------------------------------------------------
+
 %%--------------------------------------------------------------------
 %% @doc
 -spec error_stack(validation_monad()) ->
@@ -127,7 +135,7 @@ error_stack(ValidationError = #validation_error{}) ->
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Склеивает error_stack из нового объекта с накопленным ErrorStackTail
 -spec push_error_stack(Validation :: validation_monad(), ErrorStackTail :: list()) ->
     Validation2 :: validation_monad().
 %%--------------------------------------------------------------------
@@ -191,7 +199,7 @@ case1() ->
     ),
 
     ?assertEqual(UserInit, validation:extract(Status)),
-    ?assertEqual([], validation:error_stack(Status)).
+    ?assertEqual([], validation:extract_error_stack(Status)).
 
 case2() ->
     UserInit = #{id => -1, name => "John Doe", age => 16},
@@ -212,7 +220,7 @@ case2() ->
     ),
 
     ?assertEqual(UserInit, validation:extract(Status)),
-    ?assertEqual([{error, {age, forbidden}}, {error, {id, negative_value}}], validation:error_stack(Status)).
+    ?assertEqual([{error, {id, negative_value}}, {error, {age, forbidden}}], validation:extract_error_stack(Status)).
 
 case3() ->
     UserInit = #{id => 100, name => "John Doe", age => 25},
@@ -232,7 +240,7 @@ case3() ->
     ),
 
     ?assertEqual(UserInit, validation:extract(Status)),
-    ?assertEqual([], validation:error_stack(Status)).
+    ?assertEqual([], validation:extract_error_stack(Status)).
 
 case4() ->
     UserInit = #{id => 100, name => "John Doe", age => 25},
@@ -252,7 +260,7 @@ case4() ->
     ),
 
     ?assertEqual(UserInit, validation:extract(Status)),
-    ?assertEqual([], validation:error_stack(Status)).
+    ?assertEqual([], validation:extract_error_stack(Status)).
 
 case5() ->
     UserInit = #{id => 100, name => "John Doe", age => 25},
@@ -277,7 +285,7 @@ case5() ->
     ),
 
     ?assertEqual(35, maps:get(age, validation:extract(Status))),
-    ?assertEqual([], validation:error_stack(Status)).
+    ?assertEqual([], validation:extract_error_stack(Status)).
 
 %% @doc
 %% <pre>

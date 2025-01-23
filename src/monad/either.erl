@@ -145,11 +145,12 @@ case2() ->
 case3() ->
     Either = either:right(1),
     IncFun = fun(X) -> either:right(X + 1) end,
-    Either2 = (compose:pipe([
-        fun(_) ->
-            {dive, [(curry:curry_right(fun either:flatmap/2))(IncFun) || _ <- lists:seq(1, 10)]}
-        end
-    ]))(Either),
+
+    Either2 =
+    compose:pipe(Either, [
+        (curry:curry_right(fun either:flatmap/2))(IncFun) || _ <- lists:seq(1, 10)
+    ]),
+
     ?assertEqual(either:extract(Either2), 11).
 
 case4() ->

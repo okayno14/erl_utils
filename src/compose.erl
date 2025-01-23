@@ -3,55 +3,29 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([
-    compose/1,
-    pipe/1,
-
-    run_compose/2,
-    run_pipe/2,
+    compose/2,
+    pipe/2,
     catch_wrap/1
 ]).
 
 -export_type([
-    result/0,
-    result2/0,
-    acc0/0
+    result/0
 ]).
 
-%% Начальное значение аккумулятора для pipe/compose
--type acc0() :: fun(() -> result()) | term().
-
-%% Конечный результат композиции
--type result() :: {_Result, {error, _Reason}} | {error, _Reason} | error | _Result.
 
 %% Результат функций, собираемых в композицию
--type funlist2() :: [fun((_Acc) -> result2())].
--type result2() :: {dive, funlist2()} | {dive, _Acc, funlist2()} | result().
+-type funlist2() :: [fun((_Acc) -> result())].
+
+%% Конечный результат композиции
+-type result() :: Result :: term() | {{error, _Reason}, _Result} | {error, _Reason} | error.
 
 %%--------------------------------------------------------------------
-%% @doc Возвращает анонимную функцию-композицию
--spec compose(FunList :: funlist2()) ->
-    fun((AccFun :: fun(() -> result())) -> result()).
-%%--------------------------------------------------------------------
-compose(FunList) ->
-    (curry:curry(fun compose:run_compose/2))(FunList).
-%%--------------------------------------------------------------------
-
-%%--------------------------------------------------------------------
-%% @doc Возвращает анонимную функцию-конвейер
--spec pipe(FunList :: funlist2()) ->
-    fun((AccFun :: acc0()) -> result()).
-%%--------------------------------------------------------------------
-pipe(FunList) ->
-    (curry:curry(fun compose:run_pipe/2))(FunList).
-%%--------------------------------------------------------------------
-
-%%--------------------------------------------------------------------
-%% @doc То же, что и run_pipe/2, но слева-направо
--spec run_compose(FunList :: funlist2(), AccFun :: acc0()) ->
+%% @doc То же, что и pipe/2, но слева-направо
+-spec compose(Acc :: term(), FunList :: funlist2()) ->
     result().
 %%--------------------------------------------------------------------
-run_compose(FunList, AccFun) ->
-    run_pipe(lists:reverse(FunList), AccFun).
+compose(Acc, FunList) ->
+    pipe(Acc, lists:reverse(FunList)).
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
@@ -59,33 +33,20 @@ run_compose(FunList, AccFun) ->
 %% <pre>
 %% Пропускает значение по конвейеру функций.
 %% FunList - список анонимных функций, по которым будет пропущен аккумулятор.
-%%           Если одна из функций вернёт {error, _Reason}, то произойдёт остановка конвейера.
-%%           Если одна из функций вернёт {dive, FunList}, то
-%%           FunList будет положен в начало оставшегося конвейера (безопасно для стека вызовов).
-%% AccFun - функция, возвращающая начальное значение; либо уже заранее определённый аккумулятор
+%% Acc - уже заранее определённый аккумулятор
 %% pre:
 %%   Функции из FunList не должны генерировать исключения
 %% </pre>
 %% @end
--spec run_pipe(FunList :: funlist2(), AccFun :: acc0()) ->
+-spec pipe(Acc :: term(), FunList :: funlist2()) ->
     result().
 %%--------------------------------------------------------------------
-run_pipe(FunList, AccFun) when is_function(AccFun) ->
-    run_pipe_([[fun(_) -> AccFun() end | FunList]], undefined);
-
-run_pipe(FunList, Acc) ->
-    run_pipe_([FunList], Acc).
-
-run_pipe_([], Acc) ->
+pipe(Acc, []) ->
     Acc;
 
-run_pipe_([[] | T], Acc) ->
-    run_pipe_(T, Acc);
-
-run_pipe_([H | T], Acc) ->
-     [H2 | T2] = H,
-     case H2(Acc) of
-        ResultErr = {_Result, {error, _Reason}} ->
+pipe(Acc, _FunList = [Fun | T]) ->
+    case Fun(Acc) of
+        ResultErr = {{error, _Reason}, _Acc2} ->
             ResultErr;
 
         ResultErr = {error, _Reason} ->
@@ -94,22 +55,13 @@ run_pipe_([H | T], Acc) ->
         ResultErr = error ->
             ResultErr;
 
-        {dive, L2} ->
-            L3 = [L2] ++ [T2 | T],
-            run_pipe_(L3, Acc);
-
-        {dive, Acc2, L2} ->
-            L3 = [L2] ++ [T2 | T],
-            run_pipe_(L3, Acc2);
-
         Acc2 ->
-            L2 = [T2 | T],
-            run_pipe_(L2, Acc2)
+            pipe(Acc2, T)
     end.
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
-%% @doc Оборачивает небезопасную функцию в result-паттерн
+%% @doc Оборачивает небезопасную функцию в error-tuple
 -spec catch_wrap(Fun :: fun()) ->
     {error, _Reason} | _Result.
 %%--------------------------------------------------------------------
@@ -129,48 +81,48 @@ catch_wrap(Fun) ->
 run_pipe_1_test() ->
     IncFun = fun(X) -> X + 1 end,
     Result =
-    run_pipe([
+    pipe(0, [
         IncFun,
-        fun(_X) -> {dive, [IncFun || _ <- lists:seq(1, 10)]} end
-    ], fun() -> 0 end),
-    ?assertEqual(11, Result).
+        IncFun,
+        IncFun,
+        IncFun,
+        IncFun
+    ]),
+    ?assertEqual(5, Result).
 
 run_pipe_2_test() ->
     IncFun = fun(X) -> X + 1 end,
     Result =
-    run_pipe([
+    pipe(0, [
         IncFun,
-        fun(X) -> {X, {error, my_reason}} end,
-        fun(_X) -> {dive, [IncFun || _ <- lists:seq(1, 10)]} end
-    ], fun() -> 0 end),
-    ?assertEqual({1, {error, my_reason}}, Result).
+        IncFun,
+        fun(_) -> error end,
+        IncFun,
+        IncFun
+    ]),
+    ?assertEqual(error, Result).
 
 run_pipe_3_test() ->
     IncFun = fun(X) -> X + 1 end,
     Result =
-    run_pipe([
+    pipe(0, [
         IncFun,
-        fun(_X) -> {error, my_reason} end,
-        fun(_X) -> {dive, [IncFun || _ <- lists:seq(1, 10)]} end
-    ], fun() -> 0 end),
+        IncFun,
+        fun(_) -> {error, my_reason} end,
+        IncFun,
+        IncFun
+    ]),
     ?assertEqual({error, my_reason}, Result).
 
 run_pipe_4_test() ->
     IncFun = fun(X) -> X + 1 end,
     Result =
-    run_pipe([
+    pipe(0, [
         IncFun,
-        fun(_X) -> error end,
-        fun(_X) -> {dive, [IncFun || _ <- lists:seq(1, 10)]} end
-    ], fun() -> 0 end),
-    ?assertEqual(error, Result).
-
-run_pipe_5_test() ->
-    IncFun = fun(X) -> X + 1 end,
-    Result =
-    run_pipe([
         IncFun,
-        fun(_X) -> {dive, [IncFun || _ <- lists:seq(1, 10)]} end
-    ], 0),
-    ?assertEqual(11, Result).
+        fun(X) -> {{error, my_reason}, X} end,
+        IncFun,
+        IncFun
+    ]),
+    ?assertEqual({{error, my_reason}, 2}, Result).
 

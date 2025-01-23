@@ -110,8 +110,7 @@ flatmap_test_() ->
     [
         {"base case", fun case1/0},
         {"pipe_test", fun case2/0},
-        {"undefined_test", fun case3/0},
-        {"dive_test", fun case4/0}
+        {"undefined_test", fun case3/0}
     ].
 
 map_test_() ->
@@ -130,11 +129,15 @@ case1() ->
 case2() ->
     Maybe = maybe:value(1),
     IncFun = inc_flatmap_fun(),
-    Maybe2 = (compose:pipe([
+
+    Maybe2 =
+    compose:pipe(Maybe, [
         (curry:curry_right(fun maybe:flatmap/2))(IncFun),
         (curry:curry_right(fun maybe:flatmap/2))(IncFun),
         (curry:curry_right(fun maybe:flatmap/2))(IncFun)
-    ]))(Maybe),
+
+    ]),
+
     ?assertEqual(maybe:extract(Maybe2), 4).
 
 case3() ->
@@ -142,14 +145,6 @@ case3() ->
     IncFun = inc_flatmap_fun(),
     Maybe2 = maybe:flatmap(maybe:flatmap(maybe:flatmap(Maybe, IncFun), fun(_) -> maybe:empty() end), IncFun),
     ?assertEqual(maybe:extract(Maybe2), undefined).
-
-case4() ->
-    Maybe = maybe:value(1),
-    IncFun = inc_flatmap_fun(),
-    Maybe2 = (compose:pipe([
-        fun(_) -> {dive, [(curry:curry_right(fun maybe:flatmap/2))(IncFun) || _ <- lists:seq(1, 10)]} end
-    ]))(Maybe),
-    ?assertEqual(maybe:extract(Maybe2), 11).
 
 case5() ->
     Maybe = maybe:value(1),
@@ -160,11 +155,14 @@ case5() ->
 case6() ->
     Maybe = maybe:value(1),
     IncFun = inc_map_fun(),
-    Maybe2 = (compose:pipe([
+
+    Maybe2 =
+    compose:pipe(Maybe, [
         (curry:curry_right(fun maybe:map/2))(IncFun),
         (curry:curry_right(fun maybe:map/2))(IncFun),
         (curry:curry_right(fun maybe:map/2))(IncFun)
-    ]))(Maybe),
+    ]),
+
     ?assertEqual(maybe:extract(Maybe2), 4).
 
 case7() ->

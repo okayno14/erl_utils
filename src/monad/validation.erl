@@ -18,11 +18,7 @@
 ]).
 
 -export_type([
-    validation_monad/0,
-    validation_monad/1,
-
-    validation/0,
-    validation/1
+    validation_monad/1
 ]).
 
 -record(validation, {
@@ -35,14 +31,9 @@
     data :: term()
 }).
 
--type validation_monad() :: validation() | validation_error().
--type validation_monad(X) :: validation(X) | validation_error(X).
-
--type validation() :: #validation{}.
--type validation(X) :: validation(X).
-
--type validation_error() :: #validation_error{}.
--type validation_error(X) :: validation_error(X).
+-opaque validation_monad(X) :: validation(X) | validation_error(X).
+-type validation(X) :: #validation{data :: X}.
+-type validation_error(X) :: #validation_error{data :: X}.
 
 %%--------------------------------------------------------------------
 -spec map(validation(X), F :: monad:map_fun(X, Y)) ->

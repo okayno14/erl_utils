@@ -17,32 +17,24 @@
 ]).
 
 -export_type([
-    maybe/0,
     maybe/1,
-
-    value/0,
-    value/1,
-
-    empty/0
+    value/1
 ]).
 
 -record(value, {data :: term()}).
--record(empty, {data = undefined}).
+-record(empty, {data = undefined :: undefined}).
 
--type maybe() :: value() | empty().
--type maybe(X) :: value(X).
-
--type value() :: #value{}.
--type value(X) :: monad:monad(X).
-
+-opaque maybe(X) :: value(X) | empty().
+-type value(X) :: #value{data :: X}.
 -type empty() :: #empty{}.
 
 %%--------------------------------------------------------------------
 %% @doc
 -spec map(Maybe, F :: monad:map_fun(X, Y)) ->
-    Maybe | maybe(Y)
+    Maybe | Maybe2
 when
-    Maybe :: maybe(X).
+    Maybe :: maybe(X),
+    Maybe2 :: maybe(Y).
 %%--------------------------------------------------------------------
 %% TODO переделать на функциональное апи сущности
 map(Value = #value{}, F) ->
@@ -55,10 +47,11 @@ map(Empty = #empty{}, _F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec flatmap(Maybe, F :: monad:flatmap_fun(X, Y)) ->
-    Maybe | maybe(Y)
+-spec flatmap(Maybe, F :: fun((X) -> maybe(Y))) ->
+    Maybe | Maybe2
 when
-    Maybe :: maybe(X).
+    Maybe :: maybe(X),
+    Maybe2 :: maybe(Y).
 %%--------------------------------------------------------------------
 flatmap(Value = #value{}, F) ->
     #value{data = Data} = Value,
@@ -93,7 +86,7 @@ empty() ->
 %%--------------------------------------------------------------------
 %% @doc
 -spec extract(Maybe :: maybe(X)) ->
-    X | undefined.
+    undefined | X.
 %%--------------------------------------------------------------------
 extract(Value = #value{}) ->
     Value#value.data;

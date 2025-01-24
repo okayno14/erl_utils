@@ -17,7 +17,6 @@
 ]).
 
 -export_type([
-    either/0,
     either/1
 ]).
 
@@ -30,21 +29,17 @@
     data :: term()
 }).
 
--type either() :: left() | right().
--type either(X) :: left(X) | right(X).
-
--type left() :: monad:monad().
--type left(X) :: monad:monad(X).
-
--type right() :: monad:monad().
--type right(X) :: monad:monad(X).
+-opaque either(X) :: left(X) | right(X).
+-type left(X) :: #left{data :: X}.
+-type right(X) :: #right{data :: X}.
 
 %%--------------------------------------------------------------------
 %% @doc
 -spec map(Either, F :: monad:map_fun(X, Y)) ->
-    Either | either(Y)
+    Either | Either2
 when
-    Either :: either(X).
+    Either :: either(X),
+    Either2 :: either(Y).
 %%--------------------------------------------------------------------
 map(Left = #left{}, _F) ->
     Left;
@@ -56,9 +51,10 @@ map(Right = #right{}, F) ->
 %%--------------------------------------------------------------------
 %% @doc
 -spec flatmap(Either, F :: monad:flatmap_fun(X, Y)) ->
-    Either | either(Y)
+    Either | Either2
 when
-    Either :: either(X).
+    Either :: either(X),
+    Either2 :: either(Y).
 %%--------------------------------------------------------------------
 flatmap(Left = #left{}, _F) ->
     Left;

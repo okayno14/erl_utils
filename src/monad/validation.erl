@@ -100,7 +100,7 @@ extract(ValidationError = #validation_error{}) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec extract_error_stack(Validation :: validation()) ->
+-spec extract_error_stack(Validation :: validation_monad(_X)) ->
     list().
 %%--------------------------------------------------------------------
 extract_error_stack(Validation) ->
@@ -109,7 +109,7 @@ extract_error_stack(Validation) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec error_stack(validation_monad()) ->
+-spec error_stack(validation_monad(_X)) ->
     list().
 %%--------------------------------------------------------------------
 error_stack(Validation = #validation{}) ->
@@ -123,8 +123,8 @@ error_stack(ValidationError = #validation_error{}) ->
 
 %%--------------------------------------------------------------------
 %% @doc Склеивает error_stack из нового объекта с накопленным ErrorStackTail
--spec push_error_stack(Validation :: validation_monad(), ErrorStackTail :: list()) ->
-    Validation2 :: validation_monad().
+-spec push_error_stack(Validation :: validation_monad(X), ErrorStackTail :: list()) ->
+    Validation2 :: validation_monad(X).
 %%--------------------------------------------------------------------
 push_error_stack(Validation = #validation{}, ErrorStackTail) ->
     Validation#validation{
@@ -139,8 +139,8 @@ push_error_stack(ValidationError = #validation_error{}, ErrorStackTail) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec set_data(Validation :: validation(), _Data) ->
-    Validation2 :: validation_monad().
+-spec set_data(Validation :: validation_monad(_X), Data) ->
+    Validation2 :: validation_monad(Data).
 %%--------------------------------------------------------------------
 set_data(Validation = #validation{}, Data) ->
     Validation#validation{data = Data};

@@ -8,7 +8,8 @@
     value/1,
     empty/0,
     is_value/1,
-    is_empty/1
+    is_empty/1,
+    extract/2
 ]).
 
 %% monad
@@ -86,15 +87,23 @@ empty() ->
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
-%% @doc
--spec extract(Maybe :: maybe(X)) ->
-    undefined | X.
+%% @doc Ожидает value, иначе - error:function_clause
+-spec extract(Maybe :: value(X)) ->
+    X.
 %%--------------------------------------------------------------------
 extract(Value = #value{}) ->
-    Value#value.data;
+    Value#value.data.
+%%--------------------------------------------------------------------
 
-extract(Empty = #empty{}) ->
-    Empty#empty.data.
+%%--------------------------------------------------------------------
+%% @doc Вернёт Default в случае empty()
+-spec extract(Maybe :: maybe(X), Default) ->
+    X | Default.
+%%--------------------------------------------------------------------
+extract(Value = #value{}, _Default) ->
+    Value#value.data;
+extract(#empty{}, Default) ->
+    Default.
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
@@ -161,7 +170,7 @@ case3() ->
     Maybe = maybe:value(1),
     IncFun = inc_flatmap_fun(),
     Maybe2 = maybe:flatmap(maybe:flatmap(maybe:flatmap(Maybe, IncFun), fun(_) -> maybe:empty() end), IncFun),
-    ?assertEqual(maybe:extract(Maybe2), undefined).
+    ?assertEqual(maybe:extract(Maybe2, undefined), undefined).
 
 case5() ->
     Maybe = maybe:value(1),

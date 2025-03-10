@@ -1,7 +1,6 @@
 -module(port_lib).
 
 -export([
-    cmd_not/1,
     run_cmd/1,
     run_interactive_cmd/1
 ]).
@@ -9,47 +8,32 @@
 -define(CODE_SUCCESS, 0).
 
 %%--------------------------------------------------------------------
-%% @doc Инверсия кода ошибки команды
--spec cmd_not(F :: fun(() -> {ok | error, _Data})) ->
-    {ok | error, _Data}.
+%% @doc
+-spec run_cmd(CMD :: string()) ->
+    either:either(Data :: nil() | [nonempty_string()]).
 %%--------------------------------------------------------------------
-cmd_not(F) ->
-    case F() of
-        {ok, Data} ->
-            {error, Data};
-
-        {error, Data} ->
-            {ok, Data}
+run_cmd(CMD) ->
+    P = erlang:open_port({spawn, CMD}, [exit_status, stderr_to_stdout]),
+    receive
+        {P, {exit_status, ?CODE_SUCCESS}} ->
+            either:right(read_cmd_output(P, []));
+        {P, {exit_status, _S}} ->
+            either:left(read_cmd_output(P, []))
     end.
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
-%% @doc
--spec run_cmd(CMD :: nonempty_string()) ->
-    {Status :: ok | error, Data :: nil() | [nonempty_string()]}.
+%% @doc Может вернуть последним элементом [], если одна последняя строка вывода закончилась разделителем
+-spec read_cmd_output(P :: port(), Acc :: [string()]) ->
+    Acc2 :: [string()].
 %%--------------------------------------------------------------------
-run_cmd(CMD) ->
-    ReadDataFun =
-    fun ReadData(P, Acc) ->
-        receive
-            {P, {data, Str}} ->
-                ReadData(P, [Str | Acc])
-        after
-            0 ->
-                lists:reverse(Acc)
-        end
-    end,
-
-    P = erlang:open_port({spawn, CMD}, [exit_status]),
+read_cmd_output(P, Acc) ->
     receive
-        {P, {exit_status, ?CODE_SUCCESS}} ->
-            Status = ok;
-
-        {P, {exit_status, _S}} ->
-            Status = error
-    end,
-    Data = ReadDataFun(P, []),
-    {Status, Data}.
+        {P, {data, Str}} ->
+            read_cmd_output(P, [Str | Acc])
+    after 0 ->
+        lists:flatmap(fun(Str) -> string:split(Str, "\n", all) end, lists:reverse(Acc))
+    end.
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------

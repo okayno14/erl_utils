@@ -19,7 +19,9 @@
 ]).
 
 -export_type([
-    either/1
+    either/1,
+    left/1,
+    right/1
 ]).
 
 %% Сюда пишется ошибка, обрывает цепочку исполнения
@@ -32,8 +34,8 @@
 }).
 
 -opaque either(X) :: left(X) | right(X).
--type left(X) :: #left{data :: X}.
--type right(X) :: #right{data :: X}.
+-opaque left(X) :: #left{data :: X}.
+-opaque right(X) :: #right{data :: X}.
 
 %%--------------------------------------------------------------------
 %% @doc

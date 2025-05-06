@@ -7,35 +7,65 @@
 
 -define(CODE_SUCCESS, 0).
 
+-export_type([
+    output/0
+]).
+
+-type output() :: [nonempty_string()].
+
+%% TODO сделать обёрточку для асинхронного запуска run_cmd
+
 %%--------------------------------------------------------------------
 %% @doc
+%% Синхронный запуск CMD. Возвращаемый тип зависит от статуса выхода комманды.
+%% Весь текстовый вывод вернётся в виде списка строк.
+%% @end
 -spec run_cmd(CMD :: string()) ->
-    either:either(Data :: nil() | [nonempty_string()]).
+    either:either(Data :: output()).
 %%--------------------------------------------------------------------
 run_cmd(CMD) ->
-    P = erlang:open_port({spawn, CMD}, [exit_status, stderr_to_stdout]),
+    P = open_cmd_port(CMD),
+    read_cmd_output_sync(P).
+%%--------------------------------------------------------------------
+
+%%--------------------------------------------------------------------
+%% @doc
+-spec open_cmd_port(CMD :: string()) ->
+    port().
+%%--------------------------------------------------------------------
+open_cmd_port(CMD) ->
+    erlang:open_port({spawn, CMD}, [exit_status, stderr_to_stdout]).
+%%--------------------------------------------------------------------
+
+%%--------------------------------------------------------------------
+%% @doc
+-spec read_cmd_output_sync(P :: port()) ->
+    either:either(output()).
+%%--------------------------------------------------------------------
+read_cmd_output_sync(P) ->
     receive
         {P, {exit_status, ?CODE_SUCCESS}} ->
-            either:right(read_cmd_output(P, []));
+            either:right(read_cmd_output_sync2(P, []));
         {P, {exit_status, _S}} ->
-            either:left(read_cmd_output(P, []))
+            either:left(read_cmd_output_sync2(P, []))
     end.
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc Может вернуть последним элементом [], если одна последняя строка вывода закончилась разделителем
--spec read_cmd_output(P :: port(), Acc :: [string()]) ->
-    Acc2 :: [string()].
+-spec read_cmd_output_sync2(P :: port(), Acc :: [string()]) ->
+    Acc2 :: output().
 %%--------------------------------------------------------------------
-read_cmd_output(P, Acc) ->
+read_cmd_output_sync2(P, Acc) ->
     receive
         {P, {data, Str}} ->
-            read_cmd_output(P, [Str | Acc])
+            read_cmd_output_sync2(P, [Str | Acc])
     after 0 ->
         lists:flatmap(fun(Str) -> string:split(Str, "\n", all) end, lists:reverse(Acc))
     end.
 %%--------------------------------------------------------------------
 
+%% TODO nouse_stdio
 %%--------------------------------------------------------------------
 %% @doc
 %% <pre>

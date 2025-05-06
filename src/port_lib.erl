@@ -25,7 +25,7 @@
     either:either(Data :: output()).
 %%--------------------------------------------------------------------
 run_cmd(CMD) ->
-    P = open_cmd_port(CMD),
+    P = erlang:open_port({spawn, CMD}, [exit_status, stderr_to_stdout]),
     read_cmd_output_sync(P).
 %%--------------------------------------------------------------------
 
@@ -43,12 +43,13 @@ run_cmd(_CMD, _Input) ->
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
-%% @doc
--spec open_cmd_port(CMD :: string()) ->
-    port().
+%% @doc Запуск интерактивной команды, которая перехватывает текущий stdin/stdout
+-spec run_interactive_cmd(CMD :: nonempty_string()) ->
+    either:either(integer()).
 %%--------------------------------------------------------------------
-open_cmd_port(CMD) ->
-    erlang:open_port({spawn, CMD}, [exit_status, stderr_to_stdout]).
+run_interactive_cmd(CMD) ->
+    Port = erlang:open_port({spawn, CMD}, [exit_status, nouse_stdio]),
+    wait_exit_status(Port).
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
@@ -57,10 +58,10 @@ open_cmd_port(CMD) ->
     either:either(output()).
 %%--------------------------------------------------------------------
 read_cmd_output_sync(P) ->
-    receive
-        {P, {exit_status, ?CODE_SUCCESS}} ->
+    case either:is_right(wait_exit_status(P)) of
+        true ->
             either:right(read_cmd_output_sync2(P, []));
-        {P, {exit_status, _S}} ->
+        false ->
             either:left(read_cmd_output_sync2(P, []))
     end.
 %%--------------------------------------------------------------------
@@ -79,71 +80,17 @@ read_cmd_output_sync2(P, Acc) ->
     end.
 %%--------------------------------------------------------------------
 
-%% TODO nouse_stdio
 %%--------------------------------------------------------------------
 %% @doc
-%% <pre>
-%% Запускает порт для CMD, чтение - текущий поток, запись - spawn_link.
-%% НЕ РАБОТАЕТ С НЕКОТОРЫМИ терминальными приложениями, т.к. они аттачатся к терминалу,
-%% а когда erl-машина аттачится к std-потокам, то приложения не могут адекватно выполнять обмен
-%% </pre>
-%% @end
--spec run_interactive_cmd(CMD :: nonempty_string()) ->
-    ok.
+-spec wait_exit_status(P :: port()) ->
+    either:either(integer()).
 %%--------------------------------------------------------------------
-run_interactive_cmd(CMD) ->
-    Port = erlang:open_port({spawn, CMD}, [exit_status, use_stdio]),
-    _InputPid = spawn_link(fun()-> io:setopts([binary]), write_to_port(Port) end),
-    read_from_port(Port).
-%%--------------------------------------------------------------------
-
-%%--------------------------------------------------------------------
-%% @doc
--spec read_from_port(Port :: port()) ->
-    ok.
-%%--------------------------------------------------------------------
-read_from_port(Port) ->
+wait_exit_status(P) ->
     receive
-        {Port, {data, Data}} ->
-            io:format("~s", [Data]),
-            read_from_port(Port);
-
-        {Port, {exit_status, 0}} ->
-            erlang:port_close(Port),
-            ok;
-
-        {Port, {exit_status, StatusError}} ->
-            io:format(standard_error, "Exited with code:~p~n", [StatusError]),
-            erlang:port_close(Port),
-            ok;
-
-        _Msg ->
-            io:format(standard_error, "Unknown msg:~p~n", [_Msg]),
-            ok
-
-    after 5000 ->
-        read_from_port(Port)
+        {P, {exit_status, ?CODE_SUCCESS}} ->
+            either:right(?CODE_SUCCESS);
+        {P, {exit_status, Status}} ->
+            either:left(Status)
     end.
-%%--------------------------------------------------------------------
-
-%%--------------------------------------------------------------------
-%% @doc
--spec write_to_port(Port :: port()) ->
-    ok.
-%%--------------------------------------------------------------------
-write_to_port(Port) ->
-    case io:get_chars("", 1) of
-        {error, _} ->
-            ok;
-
-        eof ->
-            ok;
-
-        Input ->
-            port_command(Port, Input),
-            ok
-    end,
-    timer:sleep(16),
-    write_to_port(Port).
 %%--------------------------------------------------------------------
 

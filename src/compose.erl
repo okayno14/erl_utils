@@ -5,7 +5,9 @@
 -export([
     compose/2,
     pipe/2,
-    catch_wrap/1
+    catch_wrap/1,
+    ternary/3,
+    match/4
 ]).
 
 -export_type([
@@ -77,6 +79,19 @@ catch_wrap(Fun) ->
             Result
     end.
 %%--------------------------------------------------------------------
+
+ternary(true, TrueFun, _FalseFun) ->
+    TrueFun();
+ternary(false, _TrueFun, FalseFun) ->
+    FalseFun().
+
+match(Val, Expect, TrueFun, FalseFun) ->
+    case Val of
+        Expect ->
+            TrueFun();
+        _ ->
+            FalseFun()
+    end.
 
 run_pipe_1_test() ->
     IncFun = fun(X) -> X + 1 end,

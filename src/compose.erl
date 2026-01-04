@@ -5,8 +5,8 @@
 -export([
     compose/2,
     pipe/2,
-    ternary/3,
-    match/4
+    if_else/4,
+    match/3
 ]).
 
 %% Результат функций, собираемых в композицию
@@ -42,18 +42,51 @@ pipe(Acc, FunList) ->
     ).
 %%--------------------------------------------------------------------
 
-ternary(true, TrueFun, _FalseFun) ->
-    TrueFun();
-ternary(false, _TrueFun, FalseFun) ->
-    FalseFun().
+%%--------------------------------------------------------------------
+-spec if_else(Predicate, FunTrue, FunFalse, X) -> Y
+when
+    Predicate :: fun((X) -> boolean()),
+    FunTrue :: fun((X) -> Y),
+    FunFalse :: fun((X) -> Y).
+%%--------------------------------------------------------------------
+if_else(Predicate, FunTrue, FunFalse, X) ->
+    match(
+        {true, FunTrue},
+        {false, FunFalse},
+        Predicate(X)
+    ).
+%%--------------------------------------------------------------------
 
-match(Val, Expect, TrueFun, FalseFun) ->
-    case Val of
-        Expect ->
-            TrueFun();
-        _ ->
-            FalseFun()
-    end.
+%%--------------------------------------------------------------------
+-spec match(
+    {A, FunA},
+    {B, FunB},
+    X
+) -> Y
+when
+    FunA :: fun((X) -> Y),
+    FunB :: fun((X) -> Y),
+    A :: term(),
+    B :: term().
+%%--------------------------------------------------------------------
+match({A, FunA}, {_B, _FunB}, A) -> FunA(A);
+match({_A, _FunA}, {B, FunB}, B) -> FunB(B).
+%%--------------------------------------------------------------------
+
+%%%===================================================================
+%%% TEST
+%%%===================================================================
+
+if_else_test_() ->
+    [
+        {"true branch if_else", fun true_branch_if_else/0},
+        {"false branch if_else", fun false_branch_if_else/0}
+    ].
+
+match_test_() ->
+    [
+        {"simple match", fun simple_match/0}
+    ].
 
 run_pipe_1_test() ->
     IncFun = fun(X) -> X + 1 end,
@@ -66,4 +99,53 @@ run_pipe_1_test() ->
         IncFun
     ]),
     ?assertEqual(5, Result).
+
+true_branch_if_else() ->
+    IsHuman = fun
+        ({mortal}) -> true;
+        (_) -> false
+    end,
+    FunTrue = fun(_) -> "true branch" end,
+    FunFalse = fun(_) -> "false branch" end,
+
+    ?assertEqual(
+        "true branch",
+        if_else(
+            IsHuman,
+            FunTrue,
+            FunFalse,
+            {mortal}
+        )
+    ).
+
+false_branch_if_else() ->
+    IsHuman = fun
+        ({mortal}) -> true;
+        (_) -> false
+    end,
+    FunTrue = fun(_) -> "true branch" end,
+    FunFalse = fun(_) -> "false branch" end,
+
+    ?assertEqual(
+        "false branch",
+        if_else(
+            IsHuman,
+            FunTrue,
+            FunFalse,
+            {immortal}
+        )
+    ).
+
+simple_match() ->
+    OkFun = fun(_) -> ok end,
+    ErrFun = fun(_) -> error end,
+
+    ?assertEqual(
+        ok,
+        match(
+            {a, OkFun},
+            {b, ErrFun},
+            a
+        )
+    ).
 

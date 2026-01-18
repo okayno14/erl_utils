@@ -13,17 +13,20 @@
     flatmap_fun/2
 ]).
 
--type monad(X) :: either:either(X)
-| maybe_:maybe_(X)
-| validation:validation(X).
+-type monad(X) ::
+    either:either(X)
+    | maybe_:maybe_(X)
+    | validation:validation_monad(X).
 
 -type map_fun(X, Y) :: fun((X) -> Y).
 
 -type flatmap_fun(X, Y) :: fun((X) -> monad(Y)).
 
--callback map(Monad :: monad(X), F :: map_fun(X, Y)) -> monad(Y).
+-callback map(Monad :: monad(X), F :: map_fun(X, Y)) ->
+    monad(X) | monad(Y).
 
--callback flatmap(Monad :: monad(X), F :: flatmap_fun(X, Y)) -> monad(Y).
+-callback flatmap(Monad :: monad(X), F :: flatmap_fun(X, Y)) ->
+    monad(X) | monad(Y).
 
 %% Нужна для вытаскивывания зачёрнутого значения
 -callback extract(Monad :: monad(X)) -> X.

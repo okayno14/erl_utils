@@ -14,10 +14,10 @@
 
 %%--------------------------------------------------------------------
 %% @doc То же, что и pipe/2, но слева-направо
--spec compose(Acc :: term(), FunList :: funlist2()) ->
+-spec compose(FunList :: funlist2(), Acc :: term()) ->
     Acc2 :: term().
 %%--------------------------------------------------------------------
-compose(Acc, FunList) ->
+compose(FunList, Acc) ->
     lists:foldr(
         fun(Fun, Acc2) when is_function(Fun, 1) -> Fun(Acc2) end, Acc, FunList
     ).

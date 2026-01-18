@@ -156,15 +156,19 @@ case2() ->
     Maybe = maybe:value(1),
     IncFun = inc_flatmap_fun(),
 
-    Maybe2 =
-    compose:pipe(Maybe, [
-        (curry:curry_right(fun maybe:flatmap/2))(IncFun),
-        (curry:curry_right(fun maybe:flatmap/2))(IncFun),
-        (curry:curry_right(fun maybe:flatmap/2))(IncFun)
-
-    ]),
-
-    ?assertEqual(maybe:extract(Maybe2), 4).
+    ?assertEqual(
+        4,
+        maybe:extract(
+            compose:pipe(
+                [
+                    (curry:curry_right(fun maybe:flatmap/2))(IncFun),
+                    (curry:curry_right(fun maybe:flatmap/2))(IncFun),
+                    (curry:curry_right(fun maybe:flatmap/2))(IncFun)
+                ],
+                Maybe
+            )
+        )
+    ).
 
 case3() ->
     Maybe = maybe:value(1),
@@ -182,14 +186,19 @@ case6() ->
     Maybe = maybe:value(1),
     IncFun = inc_map_fun(),
 
-    Maybe2 =
-    compose:pipe(Maybe, [
-        (curry:curry_right(fun maybe:map/2))(IncFun),
-        (curry:curry_right(fun maybe:map/2))(IncFun),
-        (curry:curry_right(fun maybe:map/2))(IncFun)
-    ]),
-
-    ?assertEqual(maybe:extract(Maybe2), 4).
+    ?assertEqual(
+        4,
+        maybe:extract(
+            compose:pipe(
+                [
+                    (curry:curry_right(fun maybe:map/2))(IncFun),
+                    (curry:curry_right(fun maybe:map/2))(IncFun),
+                    (curry:curry_right(fun maybe:map/2))(IncFun)
+                ],
+                Maybe
+            )
+        )
+    ).
 
 case7() ->
     Maybe = maybe:value(1),

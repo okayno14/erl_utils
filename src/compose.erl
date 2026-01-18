@@ -33,10 +33,10 @@ compose(Acc, FunList) ->
 %%   Функции из FunList не должны генерировать исключения
 %% </pre>
 %% @end
--spec pipe(Acc :: term(), FunList :: funlist2()) ->
+-spec pipe(FunList :: funlist2(), Acc :: term()) ->
     Acc2 :: term().
 %%--------------------------------------------------------------------
-pipe(Acc, FunList) ->
+pipe(FunList, Acc) ->
     lists:foldl(
         fun(Fun, Acc2) when is_function(Fun, 1) -> Fun(Acc2) end, Acc, FunList
     ).
@@ -111,15 +111,19 @@ match_test_() ->
 
 run_pipe_1_test() ->
     IncFun = fun(X) -> X + 1 end,
-    Result =
-    pipe(0, [
-        IncFun,
-        IncFun,
-        IncFun,
-        IncFun,
-        IncFun
-    ]),
-    ?assertEqual(5, Result).
+    ?assertEqual(
+        5,
+        pipe(
+            [
+                IncFun,
+                IncFun,
+                IncFun,
+                IncFun,
+                IncFun
+            ],
+            0
+        )
+    ).
 
 true_branch_when() ->
     IsEven = fun(X) -> X rem 2 == 0 end,

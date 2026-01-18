@@ -217,11 +217,14 @@ case3() ->
     CheckAgeFun = monadize(fun check_age/1),
 
     Status =
-    compose:pipe(validation:validation(UserInit), [
-        fun(Validation) -> validation:flatmap(Validation, CheckIdFun) end,
-        fun(Validation) -> validation:flatmap(Validation, CheckNameFun) end,
-        fun(Validation) -> validation:flatmap(Validation, CheckAgeFun) end
-    ]),
+        compose:pipe(
+            [
+                fun(Validation) -> validation:flatmap(Validation, CheckIdFun) end,
+                fun(Validation) -> validation:flatmap(Validation, CheckNameFun) end,
+                fun(Validation) -> validation:flatmap(Validation, CheckAgeFun) end
+            ],
+            validation:validation(UserInit)
+        ),
 
     ?assertEqual(UserInit, validation:extract(Status)),
     ?assertEqual([], validation:extract_error_stack(Status)).
@@ -234,11 +237,14 @@ case4() ->
     CheckAgeFun = monadize(fun check_age/1),
 
     Status =
-    compose:pipe(validation:validation(UserInit), [
-        (curry:curry_right(fun validation:flatmap/2))(CheckIdFun),
-        (curry:curry_right(fun validation:flatmap/2))(CheckNameFun),
-        (curry:curry_right(fun validation:flatmap/2))(CheckAgeFun)
-    ]),
+        compose:pipe(
+            [
+                (curry:curry_right(fun validation:flatmap/2))(CheckIdFun),
+                (curry:curry_right(fun validation:flatmap/2))(CheckNameFun),
+                (curry:curry_right(fun validation:flatmap/2))(CheckAgeFun)
+            ],
+            validation:validation(UserInit)
+        ),
 
     ?assertEqual(UserInit, validation:extract(Status)),
     ?assertEqual([], validation:extract_error_stack(Status)).

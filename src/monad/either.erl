@@ -11,117 +11,71 @@
     is_left/1
 ]).
 
-%% monad
 -export([
     map/2,
     flatmap/2,
+    cata/3,
+    swap/1,
     extract/1
 ]).
 
 -export_type([
     either/1,
+    either/2,
     left/1,
     right/1
 ]).
 
-%% Сюда пишется ошибка, обрывает цепочку исполнения
--record(left, {
-    data :: term()
-}).
+-type either(V) :: either(V, term()).
+-type either(V, Err) :: left(V) | right(Err).
+-type left(X) :: {error, X}.
+-type right(X) :: {ok, X}.
 
--record(right, {
-    data :: term()
-}).
+left(X) ->
+    {error, X}.
 
--opaque either(X) :: left(X) | right(X).
--opaque left(X) :: #left{data :: X}.
--opaque right(X) :: #right{data :: X}.
+right(X) ->
+    {ok, X}.
 
-%%--------------------------------------------------------------------
-%% @doc
--spec map(Either, F :: monad:map_fun(X, Y)) ->
-    Either | Either2
-when
-    Either :: either(X),
-    Either2 :: either(Y).
-%%--------------------------------------------------------------------
-map(Left = #left{}, _F) ->
-    Left;
-
-map(Right = #right{}, F) ->
-    right(F(extract(Right))).
-%%--------------------------------------------------------------------
-
-%%--------------------------------------------------------------------
-%% @doc
--spec flatmap(Either, F :: monad:flatmap_fun(X, Y)) ->
-    Either | Either2
-when
-    Either :: either(X),
-    Either2 :: either(Y).
-%%--------------------------------------------------------------------
-flatmap(Left = #left{}, _F) ->
-    Left;
-
-flatmap(Right = #right{}, F) ->
-    F(extract(Right)).
-%%--------------------------------------------------------------------
-
-%%%===================================================================
-%%% either-object
-%%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @doc
--spec left(Data :: X) ->
-    left(X).
-%%--------------------------------------------------------------------
-left(Data) ->
-    #left{data = Data}.
-%%--------------------------------------------------------------------
-
-%%--------------------------------------------------------------------
-%% @doc
--spec right(Data :: X) ->
-    right(X).
-%%--------------------------------------------------------------------
-right(Data) ->
-    #right{data = Data}.
-%%--------------------------------------------------------------------
-
-%%--------------------------------------------------------------------
-%% @doc
--spec is_right(Either :: either(_)) ->
-    boolean().
-%%--------------------------------------------------------------------
-is_right(#right{}) ->
+is_right({ok, _}) ->
     true;
-is_right(#left{}) ->
+is_right(_) ->
     false.
-%%--------------------------------------------------------------------
 
-%%--------------------------------------------------------------------
-%% @doc
--spec is_left(Either :: either(_)) ->
-    boolean().
-%%--------------------------------------------------------------------
-is_left(#left{}) ->
+is_left({error, _}) ->
     true;
-is_left(#right{}) ->
+is_left(_) ->
     false.
-%%--------------------------------------------------------------------
 
-%%--------------------------------------------------------------------
-%% @doc
--spec extract(Either :: either(X)) ->
-    X.
-%%--------------------------------------------------------------------
-extract(Either = #left{}) ->
-    Either#left.data;
+map({ok, Value}, F) ->
+    {ok, F(Value)};
+map(Left = {error, _}, _F) ->
+    Left.
 
-extract(Either = #right{}) ->
-    Either#right.data.
-%%--------------------------------------------------------------------
+flatmap({ok, Value}, F) ->
+    case F(Value) of
+        Right = {ok, _} ->
+            Right;
+        Left = {error, _} ->
+            Left
+    end;
+flatmap(Left = {error, _}, _F) ->
+    Left.
+
+cata({ok, Value}, _LeftFun, RightFun) ->
+    {ok, RightFun(Value)};
+cata({error, Value}, LeftFun, _RightFun) ->
+    {error, LeftFun(Value)}.
+
+swap({ok, Value}) ->
+    {error, Value};
+swap({error, Value}) ->
+    {ok, Value}.
+
+extract({ok, Value}) ->
+    Value;
+extract({error, Value}) ->
+    Value.
 
 %%%===================================================================
 %%% test

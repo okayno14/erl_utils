@@ -1,4 +1,4 @@
--module(maybe).
+-module(maybe_).
 
 -behaviour(monad).
 
@@ -20,14 +20,14 @@
 ]).
 
 -export_type([
-    maybe/1,
+    maybe_/1,
     value/1
 ]).
 
 -record(value, {data :: term()}).
 -record(empty, {data = undefined :: undefined}).
 
--opaque maybe(X) :: value(X) | empty().
+-opaque maybe_(X) :: value(X) | empty().
 -type value(X) :: #value{data :: X}.
 -type empty() :: #empty{}.
 
@@ -36,8 +36,8 @@
 -spec map(Maybe, F :: monad:map_fun(X, Y)) ->
     Maybe | Maybe2
 when
-    Maybe :: maybe(X),
-    Maybe2 :: maybe(Y).
+    Maybe :: maybe_(X),
+    Maybe2 :: maybe_(Y).
 %%--------------------------------------------------------------------
 %% TODO переделать на функциональное апи сущности
 map(Value = #value{}, F) ->
@@ -50,11 +50,11 @@ map(Empty = #empty{}, _F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec flatmap(Maybe, F :: fun((X) -> maybe(Y))) ->
+-spec flatmap(Maybe, F :: fun((X) -> maybe_(Y))) ->
     Maybe | Maybe2
 when
-    Maybe :: maybe(X),
-    Maybe2 :: maybe(Y).
+    Maybe :: maybe_(X),
+    Maybe2 :: maybe_(Y).
 %%--------------------------------------------------------------------
 flatmap(Value = #value{}, F) ->
     #value{data = Data} = Value,
@@ -65,7 +65,7 @@ flatmap(Empty = #empty{}, _F) ->
 %%--------------------------------------------------------------------
 
 %%%===================================================================
-%%% maybe-object
+%%% maybe_-object
 %%%===================================================================
 
 %%--------------------------------------------------------------------
@@ -97,7 +97,7 @@ extract(Value = #value{}) ->
 
 %%--------------------------------------------------------------------
 %% @doc Вернёт Default в случае empty()
--spec extract(Maybe :: maybe(X), Default) ->
+-spec extract(Maybe :: maybe_(X), Default) ->
     X | Default.
 %%--------------------------------------------------------------------
 extract(Value = #value{}, _Default) ->
@@ -108,7 +108,7 @@ extract(#empty{}, Default) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec is_value(Maybe :: maybe(_X)) ->
+-spec is_value(Maybe :: maybe_(_X)) ->
     boolean().
 %%--------------------------------------------------------------------
 is_value(#value{}) ->
@@ -119,7 +119,7 @@ is_value(#empty{}) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec is_empty(Maybe :: maybe(_X)) ->
+-spec is_empty(Maybe :: maybe_(_X)) ->
     boolean().
 %%--------------------------------------------------------------------
 is_empty(#empty{}) ->
@@ -147,23 +147,23 @@ map_test_() ->
     ].
 
 case1() ->
-    Maybe = maybe:value(1),
+    Maybe = maybe_:value(1),
     IncFun = inc_flatmap_fun(),
-    Maybe2 = maybe:flatmap(maybe:flatmap(maybe:flatmap(Maybe, IncFun), IncFun), IncFun),
-    ?assertEqual(maybe:extract(Maybe2), 4).
+    Maybe2 = maybe_:flatmap(maybe_:flatmap(maybe_:flatmap(Maybe, IncFun), IncFun), IncFun),
+    ?assertEqual(maybe_:extract(Maybe2), 4).
 
 case2() ->
-    Maybe = maybe:value(1),
+    Maybe = maybe_:value(1),
     IncFun = inc_flatmap_fun(),
 
     ?assertEqual(
         4,
-        maybe:extract(
+        maybe_:extract(
             compose:pipe(
                 [
-                    (curry:curry_right(fun maybe:flatmap/2))(IncFun),
-                    (curry:curry_right(fun maybe:flatmap/2))(IncFun),
-                    (curry:curry_right(fun maybe:flatmap/2))(IncFun)
+                    (curry:curry_right(fun maybe_:flatmap/2))(IncFun),
+                    (curry:curry_right(fun maybe_:flatmap/2))(IncFun),
+                    (curry:curry_right(fun maybe_:flatmap/2))(IncFun)
                 ],
                 Maybe
             )
@@ -171,29 +171,29 @@ case2() ->
     ).
 
 case3() ->
-    Maybe = maybe:value(1),
+    Maybe = maybe_:value(1),
     IncFun = inc_flatmap_fun(),
-    Maybe2 = maybe:flatmap(maybe:flatmap(maybe:flatmap(Maybe, IncFun), fun(_) -> maybe:empty() end), IncFun),
-    ?assertEqual(maybe:extract(Maybe2, undefined), undefined).
+    Maybe2 = maybe_:flatmap(maybe_:flatmap(maybe_:flatmap(Maybe, IncFun), fun(_) -> maybe_:empty() end), IncFun),
+    ?assertEqual(maybe_:extract(Maybe2, undefined), undefined).
 
 case5() ->
-    Maybe = maybe:value(1),
+    Maybe = maybe_:value(1),
     IncFun = inc_map_fun(),
-    Maybe2 = maybe:map(maybe:map(maybe:map(Maybe, IncFun), IncFun), IncFun),
-    ?assertEqual(maybe:extract(Maybe2), 4).
+    Maybe2 = maybe_:map(maybe_:map(maybe_:map(Maybe, IncFun), IncFun), IncFun),
+    ?assertEqual(maybe_:extract(Maybe2), 4).
 
 case6() ->
-    Maybe = maybe:value(1),
+    Maybe = maybe_:value(1),
     IncFun = inc_map_fun(),
 
     ?assertEqual(
         4,
-        maybe:extract(
+        maybe_:extract(
             compose:pipe(
                 [
-                    (curry:curry_right(fun maybe:map/2))(IncFun),
-                    (curry:curry_right(fun maybe:map/2))(IncFun),
-                    (curry:curry_right(fun maybe:map/2))(IncFun)
+                    (curry:curry_right(fun maybe_:map/2))(IncFun),
+                    (curry:curry_right(fun maybe_:map/2))(IncFun),
+                    (curry:curry_right(fun maybe_:map/2))(IncFun)
                 ],
                 Maybe
             )
@@ -201,10 +201,10 @@ case6() ->
     ).
 
 case7() ->
-    Maybe = maybe:value(1),
+    Maybe = maybe_:value(1),
     Maybe2 =
-    maybe:map(
-        maybe:map(
+    maybe_:map(
+        maybe_:map(
             Maybe,
             fun(X) -> X + 1 end
         ),
@@ -214,11 +214,11 @@ case7() ->
             (3) -> "c"
         end
     ),
-    ?assertEqual("b", maybe:extract(Maybe2)).
+    ?assertEqual("b", maybe_:extract(Maybe2)).
 
 inc_map_fun() ->
     fun(X) -> X + 1 end.
 
 inc_flatmap_fun() ->
-    fun(X) -> maybe:value(X + 1) end.
+    fun(X) -> maybe_:value(X + 1) end.
 

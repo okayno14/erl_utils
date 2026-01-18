@@ -36,16 +36,22 @@
 -type validation_error(X) :: #validation_error{data :: X}.
 
 %%--------------------------------------------------------------------
--spec map(validation(X), F :: monad:map_fun(X, Y)) ->
-    validation(Y).
+-spec map(validation_monad(X), F :: monad:map_fun(X, Y)) ->
+    validation_monad(Y)
+when
+    X :: term(),
+    Y :: term().
 %%--------------------------------------------------------------------
 map(Validation, F) ->
     set_data(Validation, F(extract(Validation))).
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
--spec flatmap(validation(X), F :: monad:flatmap_fun(X, Y)) ->
-    validation(Y).
+-spec flatmap(validation_monad(X), F :: monad:flatmap_fun(X, Y)) ->
+    validation_monad(Y)
+when
+    X :: term(),
+    Y :: term().
 %%--------------------------------------------------------------------
 flatmap(Validation, F) ->
     ErrorStack = error_stack(Validation),
@@ -58,7 +64,8 @@ flatmap(Validation, F) ->
 
         %% надо положить старую Data, расширить ErrorStack
         ValidationError = #validation_error{} ->
-            push_error_stack(set_data(ValidationError, Data), ErrorStack)
+            X = set_data(ValidationError, Data),
+            push_error_stack(X, ErrorStack)
     end.
 %%--------------------------------------------------------------------
 
@@ -68,8 +75,10 @@ flatmap(Validation, F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec validation(Data :: X) ->
-    validation(X).
+-spec validation(Data) ->
+    validation(Data)
+when
+    Data :: term().
 %%--------------------------------------------------------------------
 validation(Data) ->
     #validation{data = Data, error_stack = []}.
@@ -78,7 +87,9 @@ validation(Data) ->
 %%--------------------------------------------------------------------
 %% @doc
 -spec validation_error(ErrorStack :: list(X)) ->
-    validation_error(X).
+    validation_error(X)
+when
+    X :: term().
 %%--------------------------------------------------------------------
 validation_error(ErrorStack) ->
     #validation_error{data = undefined, error_stack = ErrorStack}.
@@ -86,7 +97,7 @@ validation_error(ErrorStack) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec extract(Validation :: validation(X)) ->
+-spec extract(Validation :: validation_monad(X)) ->
     X.
 %%--------------------------------------------------------------------
 extract(Validation = #validation{}) ->
@@ -124,7 +135,9 @@ error_stack(ValidationError = #validation_error{}) ->
 %%--------------------------------------------------------------------
 %% @doc Склеивает error_stack из нового объекта с накопленным ErrorStackTail
 -spec push_error_stack(Validation :: validation_monad(X), ErrorStackTail :: list()) ->
-    Validation2 :: validation_monad(X).
+    Validation2 :: validation_monad(X)
+when
+    X :: term().
 %%--------------------------------------------------------------------
 push_error_stack(Validation = #validation{}, ErrorStackTail) ->
     Validation#validation{
@@ -140,7 +153,9 @@ push_error_stack(ValidationError = #validation_error{}, ErrorStackTail) ->
 %%--------------------------------------------------------------------
 %% @doc
 -spec set_data(Validation :: validation_monad(_X), Data) ->
-    Validation2 :: validation_monad(Data).
+    Validation2 :: validation_monad(Data)
+when
+    Data :: term().
 %%--------------------------------------------------------------------
 set_data(Validation = #validation{}, Data) ->
     Validation#validation{data = Data};

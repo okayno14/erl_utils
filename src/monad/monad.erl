@@ -23,10 +23,16 @@
 -type flatmap_fun(X, Y) :: fun((X) -> monad(Y)).
 
 -callback map(Monad :: monad(X), F :: map_fun(X, Y)) ->
-    monad(X) | monad(Y).
+    monad(X) | monad(Y)
+when
+    X :: term(),
+    Y :: term().
 
 -callback flatmap(Monad :: monad(X), F :: flatmap_fun(X, Y)) ->
-    monad(X) | monad(Y).
+    monad(X) | monad(Y)
+when
+    X :: term(),
+    Y :: term().
 
 %% Нужна для вытаскивывания зачёрнутого значения
 -callback extract(Monad :: monad(X)) -> X.

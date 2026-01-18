@@ -33,11 +33,14 @@
 
 %%--------------------------------------------------------------------
 %% @doc
--spec map(Maybe, F :: monad:map_fun(X, Y)) ->
+-spec map(Maybe, F) ->
     Maybe | Maybe2
 when
+    F :: monad:map_fun(X, Y),
     Maybe :: maybe_(X),
-    Maybe2 :: maybe_(Y).
+    Maybe2 :: maybe_(Y),
+    X :: term(),
+    Y :: term().
 %%--------------------------------------------------------------------
 %% TODO переделать на функциональное апи сущности
 map(Value = #value{}, F) ->
@@ -70,8 +73,10 @@ flatmap(Empty = #empty{}, _F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec value(Data :: X) ->
-    value(X).
+-spec value(Data) ->
+    value(Data)
+when
+    Data :: term().
 %%--------------------------------------------------------------------
 value(Data) ->
     #value{data = Data}.

@@ -14,7 +14,7 @@
 ]).
 
 -type monad(X) :: either:either(X)
-| maybe:maybe(X)
+| maybe_:maybe_(X)
 | validation:validation(X).
 
 -type map_fun(X, Y) :: fun((X) -> Y).

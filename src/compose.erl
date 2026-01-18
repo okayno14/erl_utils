@@ -9,17 +9,22 @@
     match/3
 ]).
 
-%% Результат функций, собираемых в композицию
--type funlist2() :: [fun((Acc :: term()) -> Acc2 :: term())].
-
 %%--------------------------------------------------------------------
 %% @doc То же, что и pipe/2, но слева-направо
--spec compose(FunList :: funlist2(), Acc :: term()) ->
+-spec compose(
+    FunList, Acc
+) ->
+    Acc2
+when
+    FunList :: [fun((Acc :: term()) -> Acc2 :: term())],
+    Acc :: term(),
     Acc2 :: term().
 %%--------------------------------------------------------------------
 compose(FunList, Acc) ->
     lists:foldr(
-        fun(Fun, Acc2) when is_function(Fun, 1) -> Fun(Acc2) end, Acc, FunList
+        fun(Fun, Acc2) when is_function(Fun, 1) -> Fun(Acc2) end,
+        Acc,
+        FunList
     ).
 %%--------------------------------------------------------------------
 
@@ -33,12 +38,18 @@ compose(FunList, Acc) ->
 %%   Функции из FunList не должны генерировать исключения
 %% </pre>
 %% @end
--spec pipe(FunList :: funlist2(), Acc :: term()) ->
+-spec pipe(FunList, Acc) ->
+    Acc2
+when
+    FunList :: [fun((Acc :: term()) -> Acc2 :: term())],
+    Acc :: term(),
     Acc2 :: term().
 %%--------------------------------------------------------------------
 pipe(FunList, Acc) ->
     lists:foldl(
-        fun(Fun, Acc2) when is_function(Fun, 1) -> Fun(Acc2) end, Acc, FunList
+        fun(Fun, Acc2) when is_function(Fun, 1) -> Fun(Acc2) end,
+        Acc,
+        FunList
     ).
 %%--------------------------------------------------------------------
 

@@ -96,15 +96,20 @@ map_test_() ->
 
 case1() ->
     DB = #{1 => #{name => "a"}, 2 => #{name => "b"}},
-
-    PersonFun = fun person/2,
-    NameFun = fun name/1,
-
-    Either = either:right(DB),
+    PersonWithID = curry:run_curry(curry:curry_right(fun person/2), [2]),
 
     %% Happy path
-    Either2 = either:flatmap(either:flatmap(Either, (curry:curry_right(PersonFun))(2)), NameFun),
-    ?assertEqual(either:extract(Either2), "b").
+    ?assertEqual(
+        "b",
+        compose:pipe(
+            [
+                fun(X) -> either:flatmap(X, PersonWithID) end,
+                fun(X) -> either:flatmap(X, fun name/1) end,
+                fun either:extract/1
+            ],
+            either:right(DB)
+        )
+    ).
 
 case2() ->
     DB = #{1 => #{name => "a"}, 2 => #{name => "b"}},

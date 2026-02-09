@@ -95,7 +95,10 @@ map_test_() ->
     ].
 
 case1() ->
-    DB = #{1 => #{name => "a"}, 2 => #{name => "b"}},
+    DB = #{
+        1 => #{name => "a"},
+        2 => #{name => "b"}
+    },
     PersonWithID = curry:run_curry(curry:curry_right(fun person/2), [2]),
 
     %% Happy path
@@ -112,42 +115,68 @@ case1() ->
     ).
 
 case2() ->
-    DB = #{1 => #{name => "a"}, 2 => #{name => "b"}},
+    DB =
+        #{
+            1 => #{name => "a"},
+            2 => #{name => "b"}
+        },
+    PersonWithID3 = curry:run_curry(curry:curry_right(fun person/2), [3]),
 
-    PersonFun = fun person/2,
-    NameFun = fun name/1,
-
-    Either = either:right(DB),
-
-    %% Fail
-    Either2 = either:flatmap(either:flatmap(Either, (curry:curry_right(PersonFun))(3)), NameFun),
-    ?assertEqual(either:extract(Either2), {error, not_found}).
+    ?assertEqual(
+        {error, not_found},
+        compose:pipe(
+            [
+                fun(X) -> either:flatmap(X, PersonWithID3) end,
+                fun(X) -> either:flatmap(X, fun name/1) end,
+                fun either:extract/1
+            ],
+            either:right(DB)
+        )
+    ).
 
 case3() ->
-    Either = either:right(1),
     IncFun = fun(X) -> either:right(X + 1) end,
 
     ?assertEqual(
         11,
         either:extract(
-            compose:pipe(
-                [(curry:curry_right(fun either:flatmap/2))(IncFun) || _ <- lists:seq(1, 10)],
-                Either
+            lists:foldl(
+                fun(_, Acc) -> either:flatmap(Acc, IncFun) end,
+                either:right(1),
+                lists:seq(1, 10)
             )
         )
     ).
 
 case4() ->
-    Either = either:right(1),
     IncFun = fun(X) -> X + 1 end,
-    Either2 = either:map(either:map(either:map(Either, IncFun), IncFun), IncFun),
-    ?assertEqual(4, either:extract(Either2)).
+    ?assertEqual(
+        4,
+        compose:pipe(
+            [
+                fun(X) -> either:map(X, IncFun) end,
+                fun(X) -> either:map(X, IncFun) end,
+                fun(X) -> either:map(X, IncFun) end,
+                fun either:extract/1
+            ],
+            either:right(1)
+        )
+    ).
 
 case5() ->
-    Either = either:left(1),
     IncFun = fun(X) -> X + 1 end,
-    Either2 = either:map(either:map(either:map(Either, IncFun), IncFun), IncFun),
-    ?assertEqual(1, either:extract(Either2)).
+    ?assertEqual(
+        1,
+        compose:pipe(
+            [
+                fun(X) -> either:map(X, IncFun) end,
+                fun(X) -> either:map(X, IncFun) end,
+                fun(X) -> either:map(X, IncFun) end,
+                fun either:extract/1
+            ],
+            either:left(1)
+        )
+    ).
 
 person(DB, ID) ->
     case maps:get(ID, DB, undefined) of

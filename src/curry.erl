@@ -15,11 +15,15 @@
 %%   length(Args) =&lt; arity(F), где F - искомая каррированная функция
 %% </pre>
 %% @end
--spec run_curry(FunCurried :: function(), Args :: list(term())) ->
+-spec run_curry(FunCurried :: function(), Args :: [term()]) ->
     Result :: term().
 %%--------------------------------------------------------------------
 run_curry(FunCurried, Args) ->
-    lists:foldl(fun(Elem, FunCurried1) -> FunCurried1(Elem) end, FunCurried, Args).
+    lists:foldl(
+        fun(Elem, FunCurried1) when is_function(FunCurried1, 1) -> FunCurried1(Elem) end,
+        FunCurried,
+        Args
+    ).
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------

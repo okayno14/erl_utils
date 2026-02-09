@@ -140,23 +140,26 @@ map_test_() ->
     ].
 
 case1() ->
-    DB = #{1 => #{name => "a"}, 2 => #{name => "b"}},
+    DB =
+    #{
+        1 => #{name => "a"},
+        2 => #{name => "b"}
+    },
 
-    PersonFun = fun person/2,
-    NameFun = fun name/1,
-
-    Either = either_old:right(DB),
+    PersonWithID = curry:run_curry(curry:curry_right(fun person/2), [2]),
 
     %% Happy path
-    Either2 =
-        either_old:flatmap(
-            either_old:flatmap(
-                Either,
-                (curry:curry_right(PersonFun))(2)
-            ),
-            NameFun
-        ),
-    ?assertEqual(either_old:extract(Either2), "b").
+    ?assertEqual(
+        "b",
+        compose:pipe(
+            [
+                fun(X) -> either_old:flatmap(X, PersonWithID) end,
+                fun(X) -> either_old:flatmap(X, fun name/1) end,
+                fun either_old:extract/1
+            ],
+            either_old:right(DB)
+        )
+    ).
 
 case2() ->
     DB = #{1 => #{name => "a"}, 2 => #{name => "b"}},
@@ -199,7 +202,7 @@ case5() ->
 person(DB, ID) ->
     case maps:get(ID, DB, undefined) of
         undefined ->
-            either_old:left({error, not_found});
+            either_old:left(error:error(not_found));
 
         Person ->
             either_old:right(Person)
@@ -208,7 +211,7 @@ person(DB, ID) ->
 name(Person) ->
     case maps:get(name, Person, undefined) of
         undefined ->
-            either_old:left({error, invalid});
+            either_old:left(error:error(invalid));
 
         Name ->
             either_old:right(Name)

@@ -15,8 +15,8 @@
 %%   length(Args) =&lt; arity(F), где F - искомая каррированная функция
 %% </pre>
 %% @end
--spec run_curry(FunCurried :: function(), Args :: [term()]) ->
-    Result :: term().
+-spec run_curry(function(), Args :: [term()]) ->
+    function() | Result :: term().
 %%--------------------------------------------------------------------
 run_curry(FunCurried, Args) ->
     lists:foldl(
@@ -28,8 +28,8 @@ run_curry(FunCurried, Args) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec curry(F :: function()) ->
-    fun() | Result :: term().
+-spec curry(function()) ->
+    function().
 %%--------------------------------------------------------------------
 curry(F) ->
     curry(F, left).
@@ -37,8 +37,8 @@ curry(F) ->
 
 %%--------------------------------------------------------------------
 %% @doc
--spec curry_right(F :: function()) ->
-    fun() | Result :: term().
+-spec curry_right(function()) ->
+    function().
 %%--------------------------------------------------------------------
 curry_right(F) ->
     curry(F, right).
@@ -53,7 +53,7 @@ curry_right(F) ->
 %% </pre>
 %% @end
 -spec curry(F :: function(), Dir :: left | right) ->
-    fun() | Result :: term().
+    function().
 %%--------------------------------------------------------------------
 curry(F, Dir) when is_function(F) ->
     Arity = proplists:get_value(arity, erlang:fun_info(F)),

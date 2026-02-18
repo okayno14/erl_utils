@@ -2,7 +2,10 @@
 
 -module(error2).
 
--export([error/1, code/1, additional_info/2, code_2/2, additional_info_2/3]).
+%% error_type
+-export([error/1]).
+%% error_body
+-export([code/1, additional_info/2, code_2/2, additional_info_2/3]).
 
 -export_type([
     error/0,

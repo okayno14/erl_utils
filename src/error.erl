@@ -6,7 +6,10 @@
 ]).
 
 -export_type([
-    error/0
+    error/0, error/1, error/2,
+    reason/0, reason/1,
+    reason_msg/0, reason_msg/2,
+    reason_msg_st/0, reason_msg_st/3
 ]).
 
 -define(is_error(X),
@@ -16,37 +19,53 @@
 -type error() ::
     {error, error_body()}
     | {error, error_body(), error()}.
+-type error(ErrorBody) :: {error, ErrorBody}.
+-type error(ErrorBody, Error) :: {error, ErrorBody, Error}.
 
 -type error_body() ::
-    Reason ::
-    atom()
-    | {
-        Reason :: atom(),
-        Msg :: unicode:chardata()
-    }
-    | {
-        Reason :: atom(),
-        Msg :: unicode:chardata(),
-        Stacktrace :: erlang:stacktrace()
-    }.
+    reason() |
+    reason_msg() |
+    reason_msg_st().
+
+-type reason() :: atom().
+-type reason(X) :: X.
+
+-type reason_msg() :: {Reason :: atom(), Msg :: unicode:chardata()}.
+-type reason_msg(Reason, Msg) :: {Reason, Msg}.
+
+-type reason_msg_st() :: {Reason :: atom(), Msg :: unicode:chardata(), Stacktrace :: erlang:stacktrace()}.
+-type reason_msg_st(Reason, Msg, Stacktrace) :: {Reason, Msg, Stacktrace}.
 
 %%--------------------------------------------------------------------
--spec error(Reason :: error_body()) ->
-    error().
+-spec error
+    (reason(Reason :: atom())) -> error(Reason :: atom());
+    (reason_msg(Reason :: atom(), Msg :: unicode:chardata())) ->
+        error(reason_msg(Reason :: atom(), Msg :: unicode:chardata()));
+    (
+        reason_msg_st(
+            Reason :: atom(),
+            Msg :: unicode:chardata(),
+            Stacktrace :: erlang:stacktrace()
+        )
+    ) ->
+        error(
+            reason_msg_st(
+                Reason :: atom(),
+                Msg :: unicode:chardata(),
+                Stacktrace :: erlang:stacktrace()
+            )
+        ).
 %%--------------------------------------------------------------------
-error(Reason)
-when
+error(Reason) when
     is_atom(Reason)
 ->
     {error, Reason};
-error({Reason, Msg})
-when
+error({Reason, Msg}) when
     is_atom(Reason),
     (is_list(Msg) or is_binary(Msg))
 ->
     {error, {Reason, Msg}};
-error({Reason, Msg, Stacktrace})
-when
+error({Reason, Msg, Stacktrace}) when
     is_atom(Reason),
     (is_list(Msg) or is_binary(Msg)),
     is_list(Stacktrace)
@@ -55,8 +74,26 @@ when
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
--spec error(Reason :: error_body(), Error :: error()) ->
-    error().
+-spec error
+    (reason(Reason :: atom()), error()) -> error(Reason :: atom(), error());
+    (reason_msg(Reason :: atom(), Msg :: unicode:chardata()), error()) ->
+        error(reason_msg(Reason :: atom(), Msg :: unicode:chardata()), error());
+    (
+        reason_msg_st(
+            Reason :: atom(),
+            Msg :: unicode:chardata(),
+            Stacktrace :: erlang:stacktrace()
+        ),
+        error()
+    ) ->
+        error(
+            reason_msg_st(
+                Reason :: atom(),
+                Msg :: unicode:chardata(),
+                Stacktrace :: erlang:stacktrace()
+            ),
+            error()
+        ).
 %%--------------------------------------------------------------------
 error(Reason, Error)
 when

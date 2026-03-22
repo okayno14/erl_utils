@@ -2,7 +2,10 @@
 
 -export([
     error/1,
-    error/2
+    error/2,
+    reason/1,
+    reason_msg/2,
+    reason_msg_st/3
 ]).
 
 -export_type([
@@ -118,3 +121,23 @@ when
     {error, {Reason, Msg, Stacktrace}, Error}.
 %%--------------------------------------------------------------------
 
+reason(Reason)
+when
+    is_atom(Reason)
+->
+    Reason.
+
+reason_msg(Reason, Msg)
+when
+    is_atom(Reason),
+    (is_list(Msg) orelse is_binary(Msg))
+->
+    {Reason, Msg}.
+
+reason_msg_st(Reason, Msg, Stacktrace)
+when
+    is_atom(Reason),
+    (is_list(Msg) orelse is_binary(Msg)),
+    is_list(Stacktrace)
+->
+    {Reason, Msg, Stacktrace}.

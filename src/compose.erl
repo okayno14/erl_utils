@@ -17,8 +17,8 @@
     Acc2
 when
     FunList :: [fun((Acc :: term()) -> Acc2 :: term())],
-    Acc :: term(),
-    Acc2 :: term().
+    Acc :: erlang:dynamic(),
+    Acc2 :: erlang:dynamic().
 %%--------------------------------------------------------------------
 compose(FunList, Acc) ->
     lists:foldr(
@@ -42,8 +42,8 @@ compose(FunList, Acc) ->
     Acc2
 when
     FunList :: [fun((Acc :: term()) -> Acc2 :: term())],
-    Acc :: term(),
-    Acc2 :: term().
+    Acc :: erlang:dynamic(),
+    Acc2 :: erlang:dynamic().
 %%--------------------------------------------------------------------
 pipe(FunList, Acc) ->
     lists:foldl(

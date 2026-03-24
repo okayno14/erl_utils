@@ -13,6 +13,8 @@
 %% monad
 -export([
     map/2,
+    ok_flatmap/2,
+    error_flatmap/2,
     flatmap/2,
     extract/1
 ]).
@@ -45,6 +47,18 @@ when
 map(Validation, F) ->
     set_data(Validation, F(extract(Validation))).
 %%--------------------------------------------------------------------
+
+ok_flatmap(V = #validation{}, F) ->
+    case extract_error_stack(V) of
+        [] -> flatmap(V, F);
+        _ -> V
+    end.
+
+error_flatmap(V = #validation{}, F) ->
+    case extract_error_stack(V) of
+        [] -> V;
+        _ -> flatmap(V, F)
+    end.
 
 %%--------------------------------------------------------------------
 -spec flatmap(validation_monad(X), F :: monad:flatmap_fun(X, Y)) ->

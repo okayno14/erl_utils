@@ -70,22 +70,6 @@ when
 flatmap(Validation, F) ->
     ErrorStack = error_stack(Validation),
     Data = extract(Validation),
-
-    %% TODO Таким образом под капотом можем добавлять к ошибке M,F,A чтобы можно было прочитать содержимое как при стактрейсе исключений
-    %% TODO лучше вынести в макрос, чтобы было красивее
-    %% TODO переделать: пусть принимает either2, но под капотом добавляет метаданные с ошибкой
-    %% TODO добавить возможность явно построить ошибку
-    {current_stacktrace, [_ | [{Mod, Fun, Arity, _Extra} | _]]} = erlang:process_info(
-        erlang:self(), current_stacktrace
-    ),
-
-    %% TODO Пример, как должен будет выглядеть вывод
-    % {error, [
-    %     {eaccess, {M1, F1, A1}},
-    %     {config_error, {M2, F2, A2}},
-    % ]},
-    %% Сразу видно, какой тип ошибки произошёл и в каком месте кода
-
     case F(Data) of
         %% надо просто положить старый ErrorStack
         Validation2 = #validation{} ->

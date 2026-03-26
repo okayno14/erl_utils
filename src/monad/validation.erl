@@ -48,13 +48,13 @@ map(Validation, F) ->
     set_data(Validation, F(extract(Validation))).
 %%--------------------------------------------------------------------
 
-ok_flatmap(V = #validation{}, F) ->
+ok_flatmap(V, F) when is_record(V, validation); is_record(V, validation_error) ->
     case extract_error_stack(V) of
         [] -> flatmap(V, F);
         _ -> V
     end.
 
-error_flatmap(V = #validation{}, F) ->
+error_flatmap(V, F) when is_record(V, validation); is_record(V, validation_error) ->
     case extract_error_stack(V) of
         [] -> V;
         _ -> flatmap(V, F)

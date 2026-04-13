@@ -27,11 +27,11 @@
 
 %% Сюда пишется ошибка, обрывает цепочку исполнения
 -record(left, {
-    data :: term()
+    data :: dynamic()
 }).
 
 -record(right, {
-    data :: term()
+    data :: dynamic()
 }).
 
 -opaque either(L, R) :: left(L) | right(R).
@@ -41,11 +41,9 @@
 -opaque right(X) :: #right{data :: X}.
 
 %%--------------------------------------------------------------------
--spec map(
-    Either :: either(L, A),
-    fun((A) -> B)
-) ->
-    either(L, B).
+-spec map
+    (Either :: left(L), fun((_A) -> _B)) -> left(L);
+    (Either :: right(A), fun((A) -> B :: dynamic())) -> right(B :: dynamic()).
 %%--------------------------------------------------------------------
 map(Left = #left{}, _F) ->
     Left;
@@ -84,9 +82,7 @@ unit({error, X}) -> left({error, X}).
 
 %%--------------------------------------------------------------------
 -spec left(X) ->
-    left(X)
-when
-    X :: term().
+    left(X).
 %%--------------------------------------------------------------------
 left(Data) ->
     #left{data = Data}.

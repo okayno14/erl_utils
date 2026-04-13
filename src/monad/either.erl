@@ -5,6 +5,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([
+    unit/1,
     left/1,
     right/1,
     is_right/1,
@@ -30,6 +31,9 @@
 -type either(Err, V) :: left(Err) | right(V).
 -type left(X) :: {error, X}.
 -type right(X) :: {ok, X}.
+
+unit({ok, X}) -> right(X);
+unit(Error = {error, X}) -> left(Error).
 
 left(X) ->
     {error, X}.

@@ -26,8 +26,8 @@
     right/1
 ]).
 
--type either(V) :: either(V, term()).
--type either(V, Err) :: left(V) | right(Err).
+-type either(V) :: either(dynamic(), V).
+-type either(Err, V) :: left(Err) | right(V).
 -type left(X) :: {error, X}.
 -type right(X) :: {ok, X}.
 

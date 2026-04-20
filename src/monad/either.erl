@@ -5,6 +5,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([
+    from_try/1,
     unit/1,
     left/1,
     right/1,
@@ -15,6 +16,7 @@
 -export([
     map/2,
     flatmap/2,
+    trymap/2,
     cata/3,
     swap/1,
     extract/1
@@ -24,16 +26,35 @@
     either/1,
     either/2,
     left/1,
-    right/1
+    right/1,
+    exception/0
 ]).
 
 -type either(V) :: either(dynamic(), V).
 -type either(Err, V) :: left(Err) | right(V).
 -type left(X) :: {error, X}.
 -type right(X) :: {ok, X}.
+-type exception() ::
+    {
+        Class :: throw | error | exit,
+        Reason :: dynamic(),
+        Stacktrace :: erlang:stacktrace()
+    }.
 
 unit({ok, X}) -> right(X);
 unit(Error = {error, X}) -> left(Error).
+
+-spec from_try(F :: fun(() -> X)) ->
+    either(exception(), X)
+when
+    X :: dynamic().
+from_try(F) ->
+    try
+        right(F())
+    catch
+        Class:Reason:StackTrace ->
+            left({Class, Reason, StackTrace})
+    end.
 
 left(X) ->
     {error, X}.
@@ -64,6 +85,22 @@ flatmap({ok, Value}, F) ->
             Left
     end;
 flatmap(Left = {error, _}, _F) ->
+    Left.
+
+-spec trymap(either(L, A), F :: fun((A) -> B)) ->
+    either(L | exception(), B)
+when
+    A :: dynamic(),
+    B :: dynamic(),
+    L :: dynamic().
+trymap({ok, Value}, F) ->
+    try
+        right(F(Value))
+    catch
+        Class:Reason:StackTrace ->
+            left({Class, Reason, StackTrace})
+    end;
+trymap(Left = {error, _}, _F) ->
     Left.
 
 cata({ok, Value}, _LeftFun, RightFun) ->

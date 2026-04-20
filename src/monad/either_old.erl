@@ -3,8 +3,10 @@
 % -behaviour(monad).
 
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 -export([
+    from_try/1,
     unit/1,
     left/1,
     right/1,
@@ -16,13 +18,15 @@
 -export([
     map/2,
     flatmap/2,
+    trymap/2,
     extract/1
 ]).
 
 -export_type([
     either/2,
     left/1,
-    right/1
+    right/1,
+    exception/0
 ]).
 
 %% Сюда пишется ошибка, обрывает цепочку исполнения
@@ -39,6 +43,13 @@
 % -opaque either(X) :: left(X) | right(X).
 -opaque left(X) :: #left{data :: X}.
 -opaque right(X) :: #right{data :: X}.
+
+-type exception() ::
+    {
+        Class :: throw | error | exit,
+        Reason :: dynamic(),
+        Stacktrace :: erlang:stacktrace()
+    }.
 
 %%--------------------------------------------------------------------
 -spec map
@@ -66,9 +77,43 @@ flatmap(Right = #right{}, F) ->
     F(extract(Right)).
 %%--------------------------------------------------------------------
 
+%%--------------------------------------------------------------------
+-spec trymap(Either :: either(L, A), F :: fun((A) -> B)) ->
+    either(L | exception(), B)
+when
+    A :: dynamic(),
+    B :: dynamic(),
+    L :: dynamic().
+%%--------------------------------------------------------------------
+trymap(Left = #left{}, _F) ->
+    Left;
+trymap(Right = #right{}, F) ->
+    try
+        right(F(extract(Right)))
+    catch
+        Class:Reason:StackTrace ->
+            left({Class, Reason, StackTrace})
+    end.
+%%--------------------------------------------------------------------
+
 %%%===================================================================
 %%% either-object
 %%%===================================================================
+
+%%--------------------------------------------------------------------
+-spec from_try(F :: fun(() -> X)) ->
+    either(exception(), right(X))
+when
+    X :: dynamic().
+%%--------------------------------------------------------------------
+from_try(F) ->
+    try
+        right(F())
+    catch
+        Class:Reason:StackTrace ->
+            left({Class, Reason, StackTrace})
+    end.
+%%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @doc Builds either-monad from standard ok- and error-tuples
@@ -92,7 +137,7 @@ left(Data) ->
 -spec right(X) ->
     right(X)
 when
-    X :: term().
+    X :: dynamic().
 %%--------------------------------------------------------------------
 right(Data) ->
     #right{data = Data}.
@@ -119,8 +164,9 @@ is_left(#right{}) ->
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
--spec extract(Either :: either(L, R)) ->
-    L | R.
+-spec extract
+    (left(X)) -> X;
+    (right(X)) -> X.
 %%--------------------------------------------------------------------
 extract(Either = #left{}) ->
     Either#left.data;
@@ -148,12 +194,13 @@ map_test_() ->
 
 case1() ->
     DB =
-    #{
-        1 => #{name => "a"},
-        2 => #{name => "b"}
-    },
+        #{
+            1 => #{name => "a"},
+            2 => #{name => "b"}
+        },
 
     PersonWithID = curry:run_curry(curry:curry_right(fun person/2), [2]),
+    ?assert(is_function(PersonWithID)),
 
     %% Happy path
     ?assertEqual(

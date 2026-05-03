@@ -15,6 +15,7 @@
 
 -export([
     map/2,
+    leftmap/2,
     flatmap/2,
     trymap/2,
     cata/3,
@@ -76,6 +77,11 @@ map({ok, Value}, F) ->
     {ok, F(Value)};
 map(Left = {error, _}, _F) ->
     Left.
+
+leftmap({error, Value}, F) ->
+    {error, F(Value)};
+leftmap(Right = {ok, Value}, _F) ->
+    Right.
 
 flatmap({ok, Value}, F) ->
     case F(Value) of

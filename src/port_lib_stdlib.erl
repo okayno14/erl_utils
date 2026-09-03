@@ -86,7 +86,7 @@ wait_exit_status(P) ->
     receive
         {P, Status = {exit_status, ?CODE_SUCCESS}} ->
             Status;
-        {P, Status = {exit_status, Status}} ->
+        {P, Status = {exit_status, _Code}} ->
             Status
     end.
 %%--------------------------------------------------------------------

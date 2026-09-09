@@ -64,7 +64,6 @@ read_cmd_output_sync(P) ->
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
-%% @doc Может вернуть последним элементом [], если одна последняя строка вывода закончилась разделителем
 -spec read_cmd_output_sync2(P :: port(), Acc :: [string()]) ->
     Acc2 :: output().
 %%--------------------------------------------------------------------
@@ -73,7 +72,13 @@ read_cmd_output_sync2(P, Acc) ->
         {P, {data, Str}} ->
             read_cmd_output_sync2(P, [Str | Acc])
     after 0 ->
-        lists:flatmap(fun(Str) -> string:split(Str, "\n", all) end, lists:reverse(Acc))
+        lists:join(
+            "\n",
+            lists:map(
+                fun(Str) -> string:trim(Str, trailing, "\n") end,
+                lists:reverse(Acc)
+            )
+        )
     end.
 %%--------------------------------------------------------------------
 

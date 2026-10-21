@@ -11,12 +11,10 @@
 
 %%--------------------------------------------------------------------
 %% @doc То же, что и pipe/2, но слева-направо
--spec compose(
-    FunList, Acc
-) ->
+-spec compose(FunList, Acc) ->
     Acc2
 when
-    FunList :: [fun((Acc :: term()) -> Acc2 :: term())],
+    FunList :: [fun((Acc :: dynamic()) -> Acc2 :: dynamic())],
     Acc :: erlang:dynamic(),
     Acc2 :: erlang:dynamic().
 %%--------------------------------------------------------------------

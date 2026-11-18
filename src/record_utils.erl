@@ -53,6 +53,8 @@ to_list_(Record = #{}, RecordDefList) ->
     );
 to_list_(Record, RecordDefList) when is_list(Record) ->
     [to_list_(V, RecordDefList) || V <- Record];
+to_list_({}, _RecordDefinition) ->
+    {};
 to_list_(Record, RecordDefList) when is_tuple(Record) ->
     RecordName = element(1, Record),
     X = record_definition(Record, RecordName, RecordDefList),
@@ -394,25 +396,27 @@ record_tuple_of_records() ->
             {record, node},
             {left, undefined},
             {right, undefined},
-            {value,
-                {some_tag,
-                    [
-                        {record, node},
-                        {left, undefined},
-                        {right, undefined},
-                        {value, ok}
-                    ],
-                    [{record, defaults_types}, {a, 1}, {b, "text"}],
-                    [
-                        {record, node},
-                        {left, undefined},
-                        {right, undefined},
-                        {value, ok}
-                    ]}}
+            {value, {
+                some_tag,
+                [
+                    {record, node},
+                    {left, undefined},
+                    {right, undefined},
+                    {value, ok}
+                ],
+                [{record, defaults_types}, {a, 1}, {b, "text"}],
+                [
+                    {record, node},
+                    {left, undefined},
+                    {right, undefined},
+                    {value, ok}
+                ],
+                {}
+            }}
         ],
         record_utils:to_list(
             #node{
-                value = {some_tag, #node{}, #defaults_types{}, #node{}}
+                value = {some_tag, #node{}, #defaults_types{}, #node{}, {}}
             },
             record_utils
         )

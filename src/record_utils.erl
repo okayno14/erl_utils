@@ -1,8 +1,20 @@
+%% @doc
+%% Module for recursive data structure parsing with complex records
+%% @end
+
 -module(record_utils).
 
 -export([to_list/2]).
 
+%% @doc Transform data structure: all records converts to proplist with named keys
+%% @param Record Record or data structure with records.
+%% @param Module Module, which defined all records in Record.
+%% @end
 %%--------------------------------------------------------------------
+-spec to_list(Record :: term(), Module :: module()) ->
+    term()
+    | {error, {code,  'cover_compiled' | 'preloaded' | non_existing}}
+    | {error, {beam_lib, io_lib:chars()}}.
 to_list(Record, Module) ->
     X = beam(Module),
     X2 = ast(X),
